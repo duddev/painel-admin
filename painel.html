@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gato Preto Admin | Gestão Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    
+<script>
+  let services = JSON.parse(localStorage.getItem('gp_services'));
+
+  if (!services) {
+    services = [
+      { id: 1, name: 'Corte Cabelo', price: 45, duration: 40, active: true },
+      { id: 2, name: 'Barba Completa', price: 40, duration: 30, active: true },
+      { id: 3, name: 'Sobrancelha', price: 15, duration: 10, active: true },
+      { id: 4, name: 'Personalizados', price: null, duration: null, active: true }
+    ];
+    localStorage.setItem('gp_services', JSON.stringify(services));
+  }
+
+  
+const SECTION_PERMISSION = {
+  'sec-agenda': 'agenda',
+  'sec-produtos': 'produtos',
+  'sec-servicos': 'servicos',
+  'sec-usuarios': 'usuarios',
+  'sec-horarios': 'horarios',
+  'sec-dash': 'dashboard'
+};
+
+
+// =======================
+// SERVIÇOS – PAINEL ADMIN
+// =======================
+
+function renderServices() {
+  const list = document.getElementById('services-list');
+  services = JSON.parse(localStorage.getItem('gp_services')) || [];
+
+  list.innerHTML = services.map(s => `
+    <div class="card" style="position:relative;">
+
+      <!-- STATUS -->
+      <div style="
+        position:absolute;
+        top:10px;
+        right:10px;
+        font-size:10px;
+        font-weight:bold;
+        padding:4px 8px;
+        border-radius:6px;
+        background:${s.active ? 'var(--success)' : 'var(--danger)'};
+        color:white;
+      ">
+        ${s.active ? 'ATIVO' : 'INATIVO'}
+      </div>
+
+      <h4 style="margin-bottom:5px;">${s.name}</h4>
+
+      <p style="font-size:12px;color:var(--text-gray);margin-bottom:10px;">
+        ${s.duration ? s.duration + ' minutos' : 'Tempo variável'}
+      </p>
+
+      <div style="margin-bottom:15px;">
+        <span style="
+          color:var(--teal);
+          font-weight:bold;
+          font-size:18px;
+        ">
+          ${s.price === null ? 'A combinar' : 'R$ ' + s.price}
+        </span>
+      </div>
+
+      <button 
+        class="btn-action btn-confirm"
+        style="width:100%;justify-content:center"
+        onclick="editService(${s.id})"
+      >
+        <i class="fas fa-edit"></i> Editar
+      </button>
+
+    </div>
+  `).join('');
+}
+
+ 
+
+function openServiceModal() {
+  document.getElementById('service-id').value = '';
+  document.getElementById('service-name').value = '';
+  document.getElementById('service-price').value = '';
+  document.getElementById('service-duration').value = '';
+  document.getElementById('service-active').checked = true;
+
+  document.getElementById('service-no-price').checked = false;
+  document.getElementById('service-price').disabled = false;
+
+  document.getElementById('service-modal-title').innerText = 'Novo Serviço';
+  document.getElementById('btn-del-service').style.display = 'none';
+
+  openModal('modal-service');
+}
+
+
+function editService(id) {
+  const s = services.find(x => x.id === id);
+
+  document.getElementById('service-id').value = s.id;
+  document.getElementById('service-name').value = s.name;
+  document.getElementById('service-price').value = s.price ?? '';
+  document.getElementById('service-duration').value = s.duration ?? '';
+  document.getElementById('service-active').checked = s.active;
+  document.getElementById('service-modal-title').innerText = 'Editar Serviço';
+
+  document.getElementById('btn-del-service').style.display = 'flex';
+
+  openModal('modal-service');
+
+const noPrice = s.price === null;
+
+document.getElementById('service-no-price').checked = noPrice;
+document.getElementById('service-price').disabled = noPrice;
+
+}
+
+
+function saveService() {
+  const id = document.getElementById('service-id').value;
+
+  const noPrice = document.getElementById('service-no-price').checked;
+
+  const data = {
+    id: id ? Number(id) : Date.now(),
+    name: document.getElementById('service-name').value.trim(),
+
+    price: noPrice
+      ? null
+      : (
+          document.getElementById('service-price').value
+          ? Number(document.getElementById('service-price').value)
+          : null
+        ),
+
+    duration: document.getElementById('service-duration').value
+      ? Number(document.getElementById('service-duration').value)
+      : null,
+
+    active: document.getElementById('service-active').checked
+  };
+
+  if (!data.name) return alert('Informe o nome do serviço.');
+
+  if (id) {
+    services = services.map(s => s.id == id ? data : s);
+  } else {
+    services.push(data);
+  }
+
+  localStorage.setItem('gp_services', JSON.stringify(services));
+  closeModal('modal-service');
+  renderServices();
+}
+
+function deleteService() {
+  const id = document.getElementById('service-id').value;
+  if (!id) return;
+
+  if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
+
+  services = services.filter(s => s.id != id);
+
+  localStorage.setItem('gp_services', JSON.stringify(services));
+
+  closeModal('modal-service');
+  renderServices();
+}
+
+
+</script>
+
+
+
+<script>
+  // =======================
+  // USUÁRIOS / BARBEIROS
+  // =======================
+
+  
+let gp_users = JSON.parse(localStorage.getItem('gp_users'));
+
+  if (!gp_users) {
+    gp_users = [
+      {
+        id: 1,
+        name: 'Dev - Administrador',
+        login: 'admin',
+        password: 'admin',
+        mustChangePassword: false,
+        role: 'admin',
+        permissions: [
+          'agenda',
+          'produtos',
+          'servicos',
+          'usuarios',
+          'horarios',
+          'dashboard'
+        ],
+        active: true
+      }
+    ];
+    localStorage.setItem('gp_users', JSON.stringify(gp_users));
+  }
+</script>
+
+
+
+    
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-bg: #141414;
+            --teal: #008b8b;
+            --teal-glow: rgba(0, 139, 139, 0.3);
+            --text-white: #ffffff;
+            --text-gray: #a0a0a0;
+            --danger: #ff4d4d;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --info: #3498db;
+            --border: rgba(255, 255, 255, 0.08);
+            --sidebar-width: 260px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-dark); color: var(--text-white); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        h1, h2, h3, h4, .logo-text { font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Login Screen */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 40px; border-radius: 24px; border: 1px solid var(--border); text-align: center; }
+        .login-logo { width: 80px; height: 80px; background: var(--teal); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-family: 'Oswald'; font-size: 32px; font-weight: bold; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--card-bg); border-right: 1px solid var(--border); position: fixed; left: -260px; top: 0; transition: 0.3s ease; z-index: 1500; padding: 20px; display: flex; flex-direction: column; }
+        .sidebar.active { left: 0; }
+        .sidebar-header { display: flex; align-items: center; gap: 15px; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-menu { list-style: none; flex: 1; }
+        .menu-item { padding: 12px 15px; border-radius: 10px; display: flex; align-items: center; gap: 12px; color: var(--text-gray); cursor: pointer; transition: 0.2s; margin-bottom: 5px; font-size: 14px; }
+        .menu-item:hover, .menu-item.active { background: rgba(0, 139, 139, 0.1); color: var(--teal); }
+        .menu-item i { font-size: 18px; width: 24px; text-align: center; }
+
+        /* Main Content */
+        .main-content { flex: 1; transition: 0.3s; width: 100%; min-height: 100vh; }
+        header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(10, 10, 10, 0.9); backdrop-filter: blur(10px); z-index: 100; }
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; padding-bottom: 100px; }
+
+        /* Notificações Dropdown */
+        .notif-container { position: relative; }
+        .notif-dropdown { position: absolute; top: 40px; right: 0; width: 280px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: none; z-index: 2000; animation: fadeInDown 0.3s ease; }
+        .notif-dropdown.active { display: block; }
+        .notif-header { padding: 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: bold; color: var(--teal); text-transform: uppercase; }
+        .notif-list { max-height: 300px; overflow-y: auto; }
+        .notif-item { padding: 12px; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; align-items: center; gap: 10px; }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-item i { color: var(--danger); }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Components */
+        .card { background: var(--card-bg); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center; }
+        .stat-value { font-size: 22px; font-weight: bold; color: var(--teal); display: block; }
+        .stat-label { font-size: 10px; color: var(--text-gray); text-transform: uppercase; }
+
+        /* Agenda Items */
+        .agenda-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--teal); margin-bottom: 10px; }
+        .agenda-item.cancelled { border-left-color: var(--danger); opacity: 0.5; }
+        .agenda-item.completed { border-left-color: var(--success); }
+        .agenda-item.confirmed { border-left-color: var(--info); }
+        .item-time { font-family: 'Oswald'; font-size: 18px; color: var(--teal); margin-bottom: 5px; }
+        .btn-action { padding: 8px 12px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .btn-confirm { background: rgba(52, 152, 219, 0.1); color: var(--info); }
+        .btn-done { background: rgba(46, 204, 113, 0.1); color: var(--success); }
+        .btn-cancel { background: rgba(255, 77, 77, 0.1); color: var(--danger); }
+        .btn-wpp { background: #25d366; color: white; text-decoration: none; }
+
+        /* Inventory Professional */
+        
+        .inventory-list {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        }
+
+        /* Tablet */
+        @media (max-width: 1024px) {
+        .inventory-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+        .inventory-list {
+            grid-template-columns: 1fr;
+        }
+        }
+        .product-card { background: var(--card-bg); border-radius: 20px; padding: 15px; border: 1px solid var(--border); transition: 0.3s; position: relative; overflow: hidden; }
+        .product-card:hover { border-color: var(--teal); transform: translateY(-5px); }
+        .product-image-container { width: 100%; height: 160px; background: #222; border-radius: 12px; margin-bottom: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+        .product-image-container img { width: 100%; height: 100%; object-fit: cover; }
+        .product-image-container .no-image { font-size: 40px; color: #444; }
+        .promo-tag { position: absolute; top: 10px; left: 10px; background: var(--danger); color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; z-index: 5; }
+        .product-info { text-align: left; }
+        .product-name { font-weight: 600; font-size: 16px; margin-bottom: 5px; display: block; }
+        .product-desc { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; height: 32px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+        .product-pricing { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .price-current { color: var(--teal); font-weight: bold; font-size: 18px; }
+        .price-old { color: var(--text-gray); text-decoration: line-through; font-size: 13px; }
+        .stock-info { font-size: 11px; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+        .stock-status { font-weight: bold; }
+        .stock-ok { color: var(--success); }
+        .stock-low { color: var(--danger); }
+
+        /* Modals */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .modal-content { background: var(--card-bg); width: 100%; max-width: 500px; border-radius: 24px; padding: 25px; border: 1px solid var(--border); position: relative; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-gray); margin-bottom: 6px; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; background: #1a1a1a; border: 1px solid var(--border); padding: 12px; border-radius: 12px; color: white; font-size: 14px; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: var(--teal); }
+        .btn-primary { background: var(--teal); color: white; width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1400; }
+        .overlay.active { display: block; }
+        .hidden { display: none; }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
+        .tag { background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid transparent; margin-bottom: 5px; display: inline-block; transition: 0.2s; }
+        .tag.selected { background: var(--teal); border-color: var(--teal); color: white; }
+        .chart-container { height: 250px; width: 100%; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            .inventory-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA DE LOGIN -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="login-logo">GP</div>
+
+            <h2 style="margin-bottom: 10px;">Gato Preto Admin</h2>
+            <p style="color: var(--text-gray); font-size: 14px; margin-bottom: 30px;">
+                Acesso restrito
+            </p>
+
+            <div class="input-group">
+                <label>Usuário</label>
+                <input
+                type="text"
+                id="login-user"
+                placeholder="Usuário"
+                onkeypress="if(event.key==='Enter') doLogin()"
+                >
+            </div>
+
+            <div class="input-group">
+                <label>Senha</label>
+                <input
+                type="password"
+                id="login-pass"
+                placeholder="Senha"
+                onkeypress="if(event.key==='Enter') doLogin()"
+                >
+            </div>
+
+            <button class="btn-primary" onclick="doLogin()">Entrar</button>
+
+            <p
+                id="login-error"
+                style="color: var(--danger); font-size: 12px; margin-top: 15px; display: none;"
+            >
+                Usuário ou senha inválidos!
+            </p>
+        </div>
+    </div>
+
+    <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-circle">GP</div>
+            <span class="logo-text">Gato Preto Admin</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li class="menu-item active" onclick="navigate('sec-agenda', this)"><i class="fas fa-calendar-alt"></i> Agenda</li>
+            <li class="menu-item" onclick="navigate('sec-produtos', this)"><i class="fas fa-shopping-bag"></i> Produtos & Estoque</li>
+            <li class="menu-item" onclick="navigate('sec-servicos', this)"><i class="fas fa-scissors"></i> Serviço </li>
+            <li class="menu-item" onclick="navigate('sec-usuarios', this)"><i class="fas fa-users"></i> Equipe</li>
+            <li class="menu-item" onclick="navigate('sec-horarios', this)"><i class="fas fa-clock"></i> Bloqueios</li>
+            <li class="menu-item" onclick="navigate('sec-dash', this)"><i class="fas fa-chart-line"></i> Dashboard</li>
+        </ul>
+        <div class="menu-item" onclick="doLogout()" style="margin-top: auto; color: var(--danger);"><i class="fas fa-power-off"></i> Sair</div>
+    </aside>
+
+    <div class="main-content">
+        <header>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:22px; cursor:pointer;"><i class="fas fa-bars"></i></button>
+                <h3 id="view-title">Agenda</h3>
+            </div>
+            <button onclick="doLogout()"
+                style="background:transparent;
+                        border:1px solid var(--danger);
+                        color:var(--danger);
+                        padding:8px 12px;
+                        border-radius:8px;
+                        font-size:12px;
+                        cursor:pointer;">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="notif-container">
+                    <div style="cursor: pointer;" onclick="toggleNotifDropdown()">
+                        <i class="fas fa-bell" style="font-size: 20px; color: var(--text-gray);"></i>
+                        <span id="notif-count" class="notification-badge">0</span>
+                    </div>
+                    <div class="notif-dropdown" id="notif-dropdown">
+                        <div class="notif-header">Alertas de Estoque</div>
+                        <div class="notif-list" id="notif-list"></div>
+                    </div>
+                </div>
+                <button onclick="openModal('modal-agenda')" style="background:var(--teal); border:none; color:white; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: bold;"><i class="fas fa-plus"></i> NOVO</button>
+            </div>
+        </header>
+
+        <div class="container">
+            
+            <!-- SEÇÃO AGENDA -->
+            <section id="sec-agenda">
+                <div class="stat-grid">
+                    <div class="stat-box" onclick="openModal('modal-calendar')" style="cursor: pointer;">
+                        <span class="stat-value" id="display-date">--/--</span>
+                        <span class="stat-label">Trocar Data</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-value" id="display-total">R$ 0</span>
+                        <span class="stat-label">Estimado Hoje</span>
+                    </div>
+                </div>
+                <div id="agenda-list"></div>
+            </section>
+
+            <!-- SEÇÃO PRODUTOS -->
+            <section id="sec-produtos" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Gestão de Produtos</h3>
+                    <button class="btn-action btn-confirm" onclick="prepareNewProduct()"><i class="fas fa-plus"></i> Novo Produto</button>
+                </div>
+                <div id="product-list" class="inventory-list"></div>
+            </section>
+
+            <!-- SEÇÃO SERVIÇOS -->
+             
+            
+            <section id="sec-servicos" class="hidden">
+
+                <h3>Serviços</h3>
+
+                <button class="btn-primary" onclick="openServiceModal()">
+                    + Novo serviço
+                </button>
+
+                <div id="services-list"
+                    style="
+                        display:grid;
+                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                        gap:15px;
+                        margin-top:20px;
+                    ">
+                </div>
+
+            </section>
+
+
+
+            <!-- SEÇÃO DASHBOARD -->
+            <section id="sec-dash" class="hidden">
+                <div class="flex-between mb-20">
+                    <h3>Dashboard Mensal</h3>
+                    <button class="btn-action btn-confirm" onclick="generateFullReport()"><i class="fas fa-file-alt"></i> Relatório Completo</button>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-box"><span class="stat-value" id="dash-vendas">R$ 0</span><span class="stat-label">Vendas Mês</span></div>
+                    <div class="stat-box"><span class="stat-value" id="dash-cortes">0</span><span class="stat-label">Cortes</span></div>
+                </div>
+                <div class="card">
+                    <h4>Fluxo de Horários</h4>
+                    <div class="chart-container"><canvas id="chartFluxo"></canvas></div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO USUÁRIOS -->
+            <section id="sec-usuarios" class="hidden">
+                <h3>Equipe</h3>
+                <div id="user-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px;"></div>
+            </section>
+
+            <!-- SEÇÃO BLOQUEIOS -->
+            <section id="sec-horarios" class="hidden">
+                <h3>Bloqueios</h3>
+                <div class="card" style="margin-top: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="input-group"><label>Início</label><input type="time" id="block-start"></div>
+                        <div class="input-group"><label>Fim</label><input type="time" id="block-end"></div>
+                    </div>
+                    <button class="btn-primary" onclick="addBlock()">Bloquear</button>
+                </div>
+                <div id="block-list"></div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- MODAL AGENDAMENTO -->
+    <div class="modal" id="modal-agenda">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Novo Agendamento</h3><button class="close-modal" onclick="closeModal('modal-agenda')">&times;</button></div>
+            <div class="input-group"><label>Cliente</label><input type="text" id="app-name"></div>
+            <div class="input-group"><label>WhatsApp</label><input type="tel" id="app-tel"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="input-group"><label>Barbeiro</label><select id="app-barber"></select></div>
+            <div class="input-group"><label>Data</label><input type="date" id="app-date"></div>
+            <div class="input-group"><label>Horário</label><select id="app-time"></select></div>
+            </div>
+            <div class="input-group">
+                <label>Serviços</label>
+                <div id="service-select"></div>
+            </div>
+            <button class="btn-primary" onclick="saveAppointment()">Agendar</button>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUTO -->
+    <div class="modal" id="modal-produto">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="prod-modal-title">Novo Produto</h3><button class="close-modal" onclick="closeModal('modal-produto')">&times;</button></div>
+            <input type="hidden" id="edit-prod-id">
+            <div class="input-group"><label>URL da Foto</label><input type="text" id="prod-img" placeholder="Cole o link da imagem"></div>
+            <div class="input-group"><label>Nome do Produto</label><input type="text" id="prod-name"></div>
+            <div class="input-group"><label>Descrição Curta</label><textarea id="prod-desc" rows="2"></textarea></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group"><label>Preço Atual (R$)</label><input type="number" id="prod-price" step="0.01"></div>
+                <div class="input-group"><label>Preço Antigo (R$)</label><input type="number" id="prod-price-old" step="0.01"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="input-group"><label>Estoque</label><input type="number" id="prod-stock"></div>
+                <div class="input-group"><label>Promoção?</label><select id="prod-is-promo"><option value="false">Não</option><option value="true">Sim</option></select></div>
+            </div>
+            <button class="btn-primary" onclick="saveProduct()">Salvar Produto</button>
+            <button id="btn-del-prod" class="btn-action btn-cancel" style="width:100%; margin-top:10px; justify-content:center; display:none;" onclick="deleteProduct()">Excluir Produto</button>
+        </div>
+    </div>
+
+     <!-- MODAL SERVIÇOS -->
+    <div class="modal" id="modal-service">
+        <div class="modal-content">
+
+            <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 id="service-modal-title">Novo Serviço</h3>
+            <button onclick="closeModal('modal-service')"
+                style="
+                background:none;
+                border:none;
+                color:var(--text-gray);
+                font-size:22px;
+                cursor:pointer;
+                ">
+                &times;
+            </button>
+            </div>
+
+            <input type="hidden" id="service-id">
+
+            <div class="input-group">
+                <label>Nome do Serviço</label>
+                <input id="service-name">
+            </div>
+
+            
+            <div class="input-group">
+            <label>Preço (R$)</label>
+            <input type="number" id="service-price">
+            </div>
+
+            <div class="input-group">
+            <label>
+                <input type="checkbox" id="service-no-price">
+                A combinar
+            </label>
+            </div>
+
+
+    <div class="input-group">
+      <label>Duração (minutos)</label>
+      <input type="number" id="service-duration">
+    </div>
+
+    <div class="input-group">
+      <label>
+        <input type="checkbox" id="service-active" checked>
+        Serviço ativo para agendamento
+      </label>
+    </div>
+
+    <button class="btn-primary" onclick="saveService()">Salvar Serviço</button>
+    
+    <!-- Excluir Serviço -->
+    <button id="btn-del-service" class="btn-action btn-cancel" style="width:100%; margin-top:10px; justify-content:center; display:none;" onclick="deleteService()"> Excluir Serviço </button>
+
+
+  </div>
+        </div>
+
+    <!-- MODAL CALENDARIO -->
+    <div class="modal" id="modal-calendar">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Escolher Data</h3><button class="close-modal" onclick="closeModal('modal-calendar')">&times;</button></div>
+            <input type="date" id="calendar-picker" onchange="changeDate(this.value)" style="width: 100%; padding: 15px; background: #1a1a1a; border: 1px solid var(--border); color: white; border-radius: 12px;">
+        </div>
+    </div>
+    
+
+    <!-- MODAL TROCA DE SENHA -->
+    <div class="modal" id="modal-change-password">
+    <div class="modal-content">
+        <h3>Definir Nova Senha</h3>
+
+        <div class="input-group">
+        <label>Nova senha</label>
+        <input type="password" id="new-pass">
+        </div>
+
+        <div class="input-group">
+        <label>Confirmar senha</label>
+        <input type="password" id="confirm-pass">
+        </div>
+
+        <button class="btn-primary" onclick="saveNewPassword()">
+        Salvar Senha
+        </button>
+    </div>
+    </div>
+    
+<!-- MODAL CRIAR USUÁRIO -->
+
+<div class="modal" id="modal-create-user">
+  <div class="modal-content">
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Criar usuário</h3>
+
+      <button onclick="closeModal('modal-create-user')"
+        style="
+          background:none;
+          border:none;
+          color:var(--text-gray);
+          font-size:22px;
+          cursor:pointer;
+        ">
+        &times;
+      </button>
+    </div>
+
+
+    <div class="input-group">
+      <label>Nome</label>
+      <input type="text" id="new-user-name" placeholder="Nome completo">
+    </div>
+
+    <div class="input-group">
+      <label>Login</label>
+      <input type="text" id="new-user-login" placeholder="login">
+    </div>
+
+    <div class="input-group">
+      <label>Senha inicial</label>
+      <input type="password" id="new-user-pass" placeholder="Senha temporária">
+    </div>
+
+    <div class="input-group">
+      <label>Perfil</label>
+      <select id="new-user-role">
+        <option value="barbeiro">Barbeiro</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>Permissões</label>
+
+      <label><input type="checkbox" value="agenda" checked> Agenda</label><br>
+      <label><input type="checkbox" value="servicos" checked> Serviços</label><br>
+      <label><input type="checkbox" value="produtos"> Produtos</label><br>
+      <label><input type="checkbox" value="usuarios"> Usuários</label><br>
+      <label><input type="checkbox" value="dashboard"> Dashboard</label>
+    </div>
+
+    <button class="btn-primary" onclick="createUser()">
+      Criar usuário
+    </button>
+
+  </div>
+</div>
+
+<!-- MODAL EDITAR USUÁRIO -->
+<div class="modal" id="modal-edit-user">
+  <div class="modal-content">
+
+    
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <h3>Editar usuário</h3>
+  <button onclick="closeModal('modal-edit-user')"
+    style="background:none;border:none;color:var(--text-gray);
+           font-size:22px;cursor:pointer">
+    &times;
+  </button>
+</div>
+
+    <input type="hidden" id="edit-user-id">
+
+    <div class="input-group">
+      <label>Nome</label>
+      <input type="text" id="edit-user-name">
+    </div>
+
+    <div class="input-group">
+      <label>Login</label>
+      <input type="text" id="edit-user-login" disabled>
+    </div>
+
+    <div class="input-group">
+      <label>Perfil</label>
+      <select id="edit-user-role">
+        <option value="admin">Administrador</option>
+        <option value="barbeiro">Barbeiro</option>
+      </select>
+    </div>
+
+
+
+    <div class="input-group">
+      <label>Permissões</label>
+      <div id="edit-user-permissions"></div>
+    </div>
+
+    <div class="input-group">
+      <label>
+        <input type="checkbox" id="edit-user-active">
+        Usuário ativo
+      </label>
+    </div>
+
+    <button class="btn-action btn-confirm"
+    style="width:100%;justify-content:center;margin-top:10px"
+    onclick="openResetPasswordModal(
+        document.getElementById('edit-user-id').value
+    )">
+    🔑 Redefinir senha
+    </button>
+
+    <button class="btn-primary" onclick="saveUserEdit()">Salvar alterações</button>
+
+    <button class="btn-action btn-cancel"
+      style="width:100%;margin-top:10px;justify-content:center"
+      onclick="deleteUser()">
+      Excluir usuário
+    </button>
+
+  </div>
+</div>
+
+
+    <script>
+        let currentUser = null;
+
+        let appointments = JSON.parse(localStorage.getItem('gp_apps')) || [];
+        let products = JSON.parse(localStorage.getItem('gp_prods')) || [
+            {id: 1, name: 'Pomada Matte', price: 45.00, priceOld: 55.00, stock: 12, img: '', desc: 'Fixação extra forte para o dia todo.', isPromo: true},
+            {id: 2, name: 'Óleo para Barba', price: 35.00, priceOld: 0, stock: 3, img: '', desc: 'Hidratação profunda e brilho.', isPromo: false}
+        ];
+        let blocks = JSON.parse(localStorage.getItem('gp_blocks')) || [];
+        let selectedDate = new Date().toISOString().split('T')[0];
+        let fluxChart = null;
+
+        
+            window.onload = () => {
+                const saved = localStorage.getItem('gp_logged_user');
+                if (saved) {
+                    currentUser = JSON.parse(saved);
+                    document.getElementById('login-screen').style.display = 'none';
+                    initApp();
+                }
+                };
+
+
+        
+        function doLogin() {
+            const login = document.getElementById('login-user').value.trim();
+            const pass  = document.getElementById('login-pass').value;
+
+            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+            const found = users.find(u => u.login === login && u.password === pass);
+
+            if (!found) {
+                document.getElementById('login-error').innerText = 'Usuário ou senha inválidos';
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+
+            
+            if (!found.active) {
+            document.getElementById('login-error').innerText = 'Usuário desativado';
+            document.getElementById('login-error').style.display = 'block';
+            return;
+            }
+
+
+            currentUser = found;
+            localStorage.setItem('gp_logged_user', JSON.stringify(found));
+
+            
+            if (found.mustChangePassword) {
+                document.getElementById('login-screen').style.display = 'none';
+                openChangePasswordModal();
+                return;
+            }
+
+
+            document.getElementById('login-screen').style.display = 'none';
+            initApp();
+        }
+
+       
+
+        function doLogout() {  localStorage.removeItem('gp_logged_user');location.reload();}
+
+
+
+        
+        function initApp() {
+        // ✅ Data inicial
+        document.getElementById('display-date').innerText = formatDate(selectedDate);
+        document.getElementById('app-date').value = selectedDate;
+
+        // ✅ Permissões
+        applyMenuPermissions();
+
+
+        // ✅ Elementos (com proteção)
+        const barberSelect = document.getElementById('app-barber');
+        const dateInput = document.getElementById('app-date');
+
+        if (barberSelect) {
+            barberSelect.onchange = loadAvailableTimes;
+        }
+
+        if (dateInput) {
+            dateInput.onchange = loadAvailableTimes;
+        }
+
+        // ✅ Render geral
+        renderAll();
+        }
+
+        function renderAll() {
+            appointments = JSON.parse(localStorage.getItem('gp_apps') || '[]');
+            renderAgenda();
+            renderProducts();
+            renderServices();
+            renderUsers();
+            renderBlocks();
+            checkNotifications();
+        
+        }
+
+        function save() {
+            localStorage.setItem('gp_apps', JSON.stringify(appointments));
+            localStorage.setItem('gp_prods', JSON.stringify(products));
+            localStorage.setItem('gp_blocks', JSON.stringify(blocks));
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+
+       
+        function navigate(id, el) {
+        const requiredPerm = SECTION_PERMISSION[id];
+
+        if (requiredPerm && !currentUser.permissions.includes(requiredPerm)) {
+            alert('Você não tem permissão para acessar esta área.');
+            return;
+        }
+
+        document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        document.getElementById('view-title').innerText =
+            el ? el.innerText : id.replace('sec-', '').toUpperCase();
+
+        if (id === 'sec-dash') renderDashboard();
+        toggleSidebar();
+        }
+
+
+        
+        function applyMenuPermissions() {
+        document.querySelectorAll('.sidebar .menu-item').forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (!onclick) return;
+
+            const match = onclick.match(/navigate\('(.*?)'/);
+            if (!match) return;
+
+            const section = match[1];
+            const requiredPerm = SECTION_PERMISSION[section];
+            if (!requiredPerm) return;
+
+            if (!currentUser.permissions.includes(requiredPerm)) {
+            item.style.display = 'none';
+            }
+        });
+        }
+
+
+        function toggleNotifDropdown() {
+            document.getElementById('notif-dropdown').classList.toggle('active');
+        }
+
+        function editUser(userId) {
+            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-user-name').value = user.name;
+            document.getElementById('edit-user-login').value = user.login;
+            document.getElementById('edit-user-role').value = user.role;
+            document.getElementById('edit-user-active').checked = user.active;
+
+            const permBox = document.getElementById('edit-user-permissions');
+            const allPerms = [
+            { id: 'agenda', label: 'Agenda' },
+            { id: 'servicos', label: 'Serviços' },
+            { id: 'produtos', label: 'Produtos' },
+            { id: 'usuarios', label: 'Usuários' },
+            { id: 'horarios', label: 'Bloqueios' },
+            { id: 'dashboard', label: 'Dashboard' }
+            ];
+
+            permBox.innerHTML = allPerms.map(p => `
+            <span class="tag ${user.permissions.includes(p.id) ? 'selected' : ''}"
+                    data-perm="${p.id}"
+                    onclick="this.classList.toggle('selected')">
+                ${p.label}
+            </span>
+            `).join('');
+
+
+            openModal('modal-edit-user');
+        }
+
+        function saveUserEdit() {
+            const id = Number(document.getElementById('edit-user-id').value);
+
+            let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+            
+            const permissions = Array.from(
+            document.querySelectorAll('#edit-user-permissions .tag.selected')
+            ).map(t => t.dataset.perm);
+
+
+            users = users.map(u => {
+                if (u.id === id) {
+                u.name = document.getElementById('edit-user-name').value;
+                u.role = document.getElementById('edit-user-role').value;
+                u.permissions = permissions;
+                u.active = document.getElementById('edit-user-active').checked;
+                }
+                return u;
+            });
+
+            localStorage.setItem('gp_users', JSON.stringify(users));
+
+            closeModal('modal-edit-user');
+            renderUsers();
+        }
+
+        function deleteUser() {
+            const id = Number(document.getElementById('edit-user-id').value);
+
+            if (id === currentUser.id) {
+                alert('Você não pode excluir o próprio usuário.');
+                return;
+            }
+
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+            let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+            users = users.filter(u => u.id !== id);
+
+            localStorage.setItem('gp_users', JSON.stringify(users));
+
+            closeModal('modal-edit-user');
+            renderUsers();
+        }
+
+
+        // AGENDA
+        function renderAgenda() {
+            const list = document.getElementById('agenda-list');
+           
+            
+            appointments = JSON.parse(localStorage.getItem('gp_apps') || '[]');
+            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+            let filtered = appointments.filter(a => a.date === selectedDate);
+
+
+            if (currentUser.role !== 'admin') {
+                filtered = filtered.filter(a => String(a.barberId) === String(currentUser.id));
+            }
+
+            list.innerHTML = filtered.length ? '' : '<div style="text-align:center; padding:40px; color:var(--text-gray);">Sem cortes marcados.</div>';
+            let total = 0;
+            filtered.sort((a,b) => a.time.localeCompare(b.time)).forEach(a => {
+
+    // ✅ pega barbeiro
+    const barber = users.find(u => String(u.id) === String(a.barberId));
+    const barberName = barber ? barber.name : 'Não definido';
+
+    if (a.status !== 'cancelled') total += a.price;
+
+    const item = document.createElement('div');
+    item.className = `agenda-item ${a.status}`;
+
+    item.innerHTML = `
+        <div style="flex:1">
+            <div class="item-time">${a.time}</div>
+            <h4 style="font-size:16px;">${a.name}</h4>
+
+            <p style="font-size:12px; color:var(--text-gray)">
+                ${currentUser.role === 'admin' ? `💈 ${barberName}<br>` : ''}
+                ${a.services.join(', ')} • R$ ${a.price}
+            </p>
+
+            <div class="item-actions">
+                ${a.status === 'open' ? `<button class="btn-action btn-confirm" onclick="confirmApp(${a.id})"><i class="fas fa-check"></i> Confirmar</button>` : ''}
+                <button class="btn-action btn-done" onclick="completeApp(${a.id})"><i class="fas fa-check"></i> Concluir</button>
+                <button class="btn-action btn-cancel" onclick="cancelApp(${a.id})"><i class="fas fa-times"></i></button>
+                <a href="https://wa.me/55${a.tel}" class="btn-action btn-wpp"><i class="fab fa-whatsapp"></i></a>
+            </div>
+        </div>
+    `;
+
+    list.appendChild(item);
+});
+            document.getElementById('display-total').innerText = `R$ ${total}`;
+        }
+
+        function confirmApp(id) {
+            appointments.find(x => x.id === id).status = 'confirmed';
+            alert('Confirmado e notificado via WhatsApp!');
+            renderAll();
+        }
+        function completeApp(id) { appointments.find(x => x.id === id).status = 'completed'; renderAll(); }
+        function cancelApp(id) { if(confirm('Cancelar?')) { appointments.find(x => x.id === id).status = 'cancelled'; renderAll(); } }
+
+        function saveAppointment() {
+            const barberId = Number(document.getElementById('app-barber').value);
+            const name = document.getElementById('app-name').value;
+            const tel  = document.getElementById('app-tel').value;
+            const date = document.getElementById('app-date').value;
+            const time = document.getElementById('app-time').value;
+
+            const tags = document.querySelectorAll('.tag.selected');
+            if (!name || !time || tags.length === 0) {
+                return alert('Preencha tudo!');
+            }
+
+
+            let selectedServices = [];
+            let price = 0;
+
+            let totalDuration = 0;
+
+            tags.forEach(t => {
+            selectedServices.push(t.dataset.name);
+            price += parseInt(t.dataset.price);
+            
+            // ✅ pegar duração do serviço
+            const service = services.find(s => s.name === t.dataset.name);
+            if (service && service.duration) {
+                totalDuration += service.duration;
+            }
+            });
+
+            appointments.push({
+                id: Date.now(),
+                name,
+                tel,
+                date,
+                time,
+                services: selectedServices,
+                price,
+                status: 'open',
+                barberId: String(barberId),
+                duration: totalDuration
+            });
+
+            closeModal('modal-agenda');
+            renderAll();
+            }
+
+        // PRODUTOS
+        function renderProducts() {
+            const list = document.getElementById('product-list');
+            list.innerHTML = products.map(p => `
+                <div class="product-card">
+                    ${p.isPromo ? '<div class="promo-tag">Promoção</div>' : ''}
+                    <div class="product-image-container">
+                        ${p.img ? `<img src="${p.img}">` : '<div class="no-image"><i class="fas fa-box"></i></div>'}
+                    </div>
+                    <div class="product-info">
+                        <span class="product-name">${p.name}</span>
+                        <p class="product-desc">${p.desc || 'Sem descrição.'}</p>
+                        <div class="product-pricing">
+                            <span class="price-current">R$ ${p.price.toFixed(2)}</span>
+                            ${p.priceOld > 0 ? `<span class="price-old">R$ ${p.priceOld.toFixed(2)}</span>` : ''}
+                        </div>
+                        <div class="stock-info">
+                            <span>Estoque</span>
+                            <span class="stock-status ${p.stock < 5 ? 'stock-low' : 'stock-ok'}">${p.stock} unid.</span>
+                        </div>
+                        <button class="btn-primary" style="padding: 8px; font-size: 12px;" onclick="editProduct(${p.id})">Editar Produto</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function prepareNewProduct() {
+            document.getElementById('edit-prod-id').value = '';
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('prod-price-old').value = '';
+            document.getElementById('prod-stock').value = '';
+            document.getElementById('prod-img').value = '';
+            document.getElementById('prod-desc').value = '';
+            document.getElementById('prod-is-promo').value = 'false';
+            document.getElementById('prod-modal-title').innerText = 'Novo Produto';
+            document.getElementById('btn-del-prod').style.display = 'none';
+            openModal('modal-produto');
+        }
+
+        function editProduct(id) {
+            const p = products.find(x => x.id === id);
+            document.getElementById('edit-prod-id').value = p.id;
+            document.getElementById('prod-name').value = p.name;
+            document.getElementById('prod-price').value = p.price;
+            document.getElementById('prod-price-old').value = p.priceOld || '';
+            document.getElementById('prod-stock').value = p.stock;
+            document.getElementById('prod-img').value = p.img || '';
+            document.getElementById('prod-desc').value = p.desc || '';
+            document.getElementById('prod-is-promo').value = p.isPromo.toString();
+            document.getElementById('prod-modal-title').innerText = 'Editar Produto';
+            document.getElementById('btn-del-prod').style.display = 'block';
+            openModal('modal-produto');
+        }
+
+        function saveProduct() {
+            const id = document.getElementById('edit-prod-id').value;
+            const data = {
+                name: document.getElementById('prod-name').value,
+                price: parseFloat(document.getElementById('prod-price').value),
+                priceOld: parseFloat(document.getElementById('prod-price-old').value) || 0,
+                stock: parseInt(document.getElementById('prod-stock').value),
+                img: document.getElementById('prod-img').value,
+                desc: document.getElementById('prod-desc').value,
+                isPromo: document.getElementById('prod-is-promo').value === 'true'
+            };
+            if(!data.name || isNaN(data.price)) return alert('Preencha Nome e Preço!');
+            if(id) {
+                const idx = products.findIndex(p => p.id == id);
+                products[idx] = { ...products[idx], ...data };
+            } else {
+                products.push({ id: Date.now(), ...data });
+            }
+
+            
+            // ✅ AQUI O FIX
+            localStorage.setItem('gp_prods', JSON.stringify(products));
+
+            renderAll();
+            closeModal('modal-produto');
+
+            renderAll(); closeModal('modal-produto');
+        }
+
+        function deleteProduct() {
+            const id = document.getElementById('edit-prod-id').value;
+            if(confirm('Apagar permanentemente?')) {
+                products = products.filter(p => p.id != id);
+
+                
+                // ✅ salvar depois de remover
+                localStorage.setItem('gp_prods', JSON.stringify(products));
+
+                renderAll(); closeModal('modal-produto');
+            }
+        }
+
+        // DASHBOARD
+        function renderDashboard() {
+            const completed = appointments.filter(a => a.status === 'completed');
+            document.getElementById('dash-vendas').innerText = `R$ ${completed.reduce((s,a) => s+a.price, 0)}`;
+            document.getElementById('dash-cortes').innerText = completed.length;
+            const ctx = document.getElementById('chartFluxo').getContext('2d');
+            if (fluxChart) fluxChart.destroy();
+            fluxChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['08h', '10h', '12h', '14h', '16h', '18h', '20h'], datasets: [{ label: 'Fluxo', data: [2, 5, 12, 4, 15, 20, 10], backgroundColor: '#008b8b' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function checkNotifications() {
+            const low = products.filter(p => p.stock < 5);
+            document.getElementById('notif-count').innerText = low.length;
+            document.getElementById('notif-count').style.display = low.length > 0 ? 'block' : 'none';
+            document.getElementById('notif-list').innerHTML = low.length ? 
+                low.map(p => `<div class="notif-item"><i class="fas fa-exclamation-triangle"></i> ${p.name}: ${p.stock} restando</div>`).join('') :
+                '<div style="padding:15px; text-align:center; color:var(--text-gray); font-size:12px;">Nenhum alerta.</div>';
+        }
+
+        // UTILS
+        function formatDate(d) { const [y,m,d1] = d.split('-'); return `${d1}/${m}`; }        
+        function openModal(id) { 
+        document.getElementById(id).style.display = 'flex';
+
+        if (id === 'modal-agenda') {
+            renderServiceTags();  // ✅ renderiza tags de serviços
+            loadBarbers();        // ✅ carrega barbeiros
+            loadAvailableTimes(); // ✅ carrega horários
+        }
+        }
+
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function openChangePasswordModal() {  document.getElementById('new-pass').value = '';  document.getElementById('confirm-pass').value = '';  openModal('modal-change-password');}        
+        function openCreateUserModal() {  document.getElementById('new-user-name').value = '';  document.getElementById('new-user-login').value = '';  document.getElementById('new-user-pass').value = '';  document.getElementById('new-user-role').value = 'barbeiro';  openModal('modal-create-user');}
+        
+function createUser() {
+  const name = document.getElementById('new-user-name').value.trim();
+  const login = document.getElementById('new-user-login').value.trim();
+  const pass = document.getElementById('new-user-pass').value;
+  const role = document.getElementById('new-user-role').value;
+
+  const permissionEls = document.querySelectorAll(
+    '#modal-create-user input[type="checkbox"]:checked'
+  );
+  const permissions = Array.from(permissionEls).map(p => p.value);
+
+  // Validações básicas
+  if (!name || !login || !pass) {
+    alert('Preencha nome, login e senha.');
+    return;
+  }
+
+  if (pass.length < 4) {
+    alert('A senha deve ter pelo menos 4 caracteres.');
+    return;
+  }
+
+  let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+  // Impede login duplicado
+  if (users.some(u => u.login === login)) {
+    alert('Já existe um usuário com esse login.');
+    return;
+  }
+
+  // Modelo de usuário (BACKEND-READY)
+  const newUser = {
+    id: Date.now(),
+    name,
+    login,
+    password: pass,           // depois vira hash no backend
+    mustChangePassword: true, // troca obrigatória no primeiro login
+    role,
+    permissions,
+    active: true
+  };
+
+  // 💾 Hoje: localStorage
+  users.push(newUser);
+  localStorage.setItem('gp_users', JSON.stringify(users));
+
+  // 🌐 Amanhã: API (já preparado)
+  // await fetch('/api/users', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify(newUser)
+  // });
+
+  closeModal('modal-create-user');
+  renderUsers();
+
+  alert('Usuário criado com sucesso!');
+}
+
+        function saveNewPassword() {
+        const pass = document.getElementById('new-pass').value;
+        const confirm = document.getElementById('confirm-pass').value;
+
+        if (!pass || pass.length < 4) {
+            alert('Senha muito curta.');
+            return;
+        }
+
+        if (pass !== confirm) {
+            alert('As senhas não coincidem.');
+            return;
+        }
+
+        let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+        users = users.map(u => {
+            if (u.id === currentUser.id) {
+            u.password = pass;
+            u.mustChangePassword = false;
+            currentUser = u;
+            }
+            return u;
+        });
+
+        localStorage.setItem('gp_users', JSON.stringify(users));
+        localStorage.setItem('gp_logged_user', JSON.stringify(currentUser));
+
+        closeModal('modal-change-password');
+        initApp();
+        }
+
+        
+        function openResetPasswordModal(userId) {
+        let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+        const user = users.find(u => u.id == userId);
+        if (!user) return;
+
+        // ✅ redefine senha
+        user.password = '1234';
+
+        // ✅ força troca no próximo login
+        user.mustChangePassword = true;
+
+        // ✅ salva alteração
+        localStorage.setItem('gp_users', JSON.stringify(users));
+
+        // ✅ feedback profissional
+        alert(`Senha redefinida do usuário ${user.login}. A nova senha temporária é 1234.`);
+        }
+
+        function changeDate(v) { selectedDate = v; document.getElementById('display-date').innerText = formatDate(v); renderAgenda(); closeModal('modal-calendar'); }
+       
+        function renderUsers() {
+  const box = document.getElementById('user-list');
+
+  if (currentUser.role !== 'admin') {
+    box.innerHTML = '<p style="color:var(--text-gray)">Acesso restrito.</p>';
+    return;
+  }
+
+  const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+  box.innerHTML = `
+    <button class="btn-primary" onclick="openCreateUserModal()">
+      + Criar novo usuário
+    </button>
+
+    ${users.map(u => `
+      <div class="card" style="margin-top:15px">
+        <h4>${u.name}</h4>
+        <p style="font-size:12px;color:var(--text-gray)">
+          Login: <strong>${u.login}</strong><br>
+          Perfil: ${u.role}<br>
+          Permissões: ${u.permissions.join(', ')}
+        </p>
+
+        <button class="btn-action btn-confirm"
+          onclick="editUser(${u.id})">
+        ✏️ Editar usuário
+        </button>
+      </div>
+      
+    `).join('')}
+  `;
+}
+        
+
+        function renderBlocks() { document.getElementById('block-list').innerHTML = blocks.map(b => `<div class="card" style="display:flex; justify-content:space-between;"><span>${b.start} às ${b.end}</span><i class="fas fa-trash" onclick="removeBlock(${b.id})" style="cursor:pointer; color:var(--danger)"></i></div>`).join(''); }
+        function addBlock() {
+            const s = document.getElementById('block-start').value;
+            const e = document.getElementById('block-end').value;
+            if(!s || !e) return alert('Horários!');
+            blocks.push({ id: Date.now(), start: s, end: e });
+            renderAll();
+        }
+        function removeBlock(id) { blocks = blocks.filter(x => x.id !== id); renderAll(); }
+        function generateFullReport() { alert('Relatório gerado e salvo no histórico do sistema!'); }
+    
+        function generateTimeSlots() {
+            const slots = [];
+
+            let start = 8 * 60;  // 08:00
+            let end   = 22 * 60; // 22:00
+
+            while (start < end) {
+                const h = String(Math.floor(start / 60)).padStart(2, '0');
+                const m = String(start % 60).padStart(2, '0');
+
+                slots.push(`${h}:${m}`);
+                start += 30;
+            }
+
+            return slots;
+        }
+
+        function isTimeBlocked(time, barberId, duration) {
+            const toMin = t => {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const start = toMin(time);
+            const end = start + duration;
+
+            const sameDay = appointments.filter(a =>
+                String(a.barberId) === String(barberId) &&
+                a.date === document.getElementById('app-date').value &&
+                a.status !== 'cancelled'
+            );
+
+            for (let a of sameDay) {
+                const aStart = toMin(a.time);
+                const aEnd = aStart + (a.duration || 30);
+
+                if (
+                (start >= aStart && start < aEnd) ||
+                (end > aStart && end <= aEnd) ||
+                (start <= aStart && end >= aEnd)
+                ) {
+                return true;
+                }
+            }
+
+            return false;
+            }
+            
+            
+          function loadAvailableTimes() {
+            const barberSelect = document.getElementById('app-barber');
+            const select = document.getElementById('app-time');
+
+            // ✅ Proteção: select não existe
+            if (!select) return;
+
+            // ✅ Proteção: barbeiro não selecionado
+            if (!barberSelect || !barberSelect.value) {
+                select.innerHTML = '<option>Selecione um barbeiro</option>';
+                return;
+            }
+
+            const barberId = String(barberSelect.value);
+            const tags = document.querySelectorAll('.tag.selected');
+
+            let duration = 0;
+
+            // ✅ Soma duração
+            tags.forEach(t => {
+                const service = services.find(s => s.name === t.dataset.name);
+                if (service && service.duration) {
+                duration += service.duration;
+                }
+            });
+
+            // ✅ fallback padrão
+            if (!duration) duration = 30;
+
+            const allSlots = generateTimeSlots();
+
+            // ✅ Geração dos horários
+            select.innerHTML = allSlots.map(t => {
+                const blocked = isTimeBlocked(t, barberId, duration);
+
+                return `
+                <option value="${t}" ${blocked ? 'disabled' : ''}>
+                    ${t}${blocked ? ' (ocupado)' : ''}
+                </option>
+                `;
+            }).join('');
+
+            // ✅ Seleciona automaticamente o primeiro disponível
+            const firstAvailable = select.querySelector('option:not([disabled])');
+            if (firstAvailable) {
+                firstAvailable.selected = true;
+            }
+            }
+            function loadBarbers() {
+            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+
+            const barbers = users.filter(u =>
+                u.role === 'barbeiro' && u.active
+            );
+
+            const select = document.getElementById('app-barber');
+
+            select.innerHTML = barbers.map(b =>
+                `<option value="${b.id}">${b.name}</option>`
+            ).join('');
+
+            // se for barbeiro logado, já seleciona ele
+            if (currentUser.role === 'barbeiro') {
+                select.value = currentUser.id;
+                }
+            }
+
+            
+          function renderServiceTags() {
+            const box = document.getElementById('service-select');
+
+            // ✅ proteção
+            if (!box) return;
+
+            // ✅ sempre pegar do storage atualizado
+            services = JSON.parse(localStorage.getItem('gp_services')) || [];
+
+            const activeServices = services.filter(s => s.active);
+
+            box.innerHTML = activeServices.map(s => `
+                <span class="tag"
+                data-price="${s.price || 0}"
+                data-name="${s.name}">
+                ${s.name} ${s.price ? 'R$ ' + s.price : ''}
+                </span>
+            `).join('');
+
+            // ✅ reaplica eventos
+            box.querySelectorAll('.tag').forEach(t => {
+                t.onclick = () => {
+                t.classList.toggle('selected');
+                loadAvailableTimes();
+                };
+            });
+        }   
+
+        
+            document.addEventListener('change', (e) => {
+            if (e.target.id === 'service-no-price') {
+                const input = document.getElementById('service-price');
+                input.disabled = e.target.checked;
+                if (e.target.checked) input.value = '';
+            }
+            });
+
+
+    </script>
+</body>
+</html>
