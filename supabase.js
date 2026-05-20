@@ -1,7 +1,6 @@
-
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 export const sb = createClient(
-  'hhttps://vgoqbaxragkkfqnmzlrq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZnb3FiYXhyYWdra2Zxbm16bHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4OTcyMTksImV4cCI6MjA5NDQ3MzIxOX0.mSA5vNxzRZefNJMptTJiEIlDIDXxA25h7QPtXd01_ao'
+  'https://vgoqbaxragkkfqnmzlrq.supabase.co',
+  'sb_publishable_bJ23lq8V3rmZI3FV_bd3mg_N9YIqMlx'
 );
