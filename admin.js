@@ -1,16 +1,6 @@
 import { sb } from './supabase.js';
 
-let services = JSON.parse(localStorage.getItem('gp_services'));
-
-  if (!services) {
-    services = [
-      { id: 1, name: 'Corte Cabelo', price: 45, duration: 40, active: true },
-      { id: 2, name: 'Barba Completa', price: 40, duration: 30, active: true },
-      { id: 3, name: 'Sobrancelha', price: 15, duration: 10, active: true },
-      { id: 4, name: 'Personalizados', price: null, duration: null, active: true }
-    ];
-    localStorage.setItem('gp_services', JSON.stringify(services));
-  }
+let services = [];
 
   
 const SECTION_PERMISSION = {
@@ -27,52 +17,25 @@ const SECTION_PERMISSION = {
 // SERVIÇOS – PAINEL ADMIN
 // =======================
 
-function renderServices() {
+
+ async function renderServices() {
   const list = document.getElementById('services-list');
-  services = JSON.parse(localStorage.getItem('gp_services')) || [];
+
+  const { data, error } = await sb
+    .from('services')
+    .select('*')
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  services = data || [];
 
   list.innerHTML = services.map(s => `
-    <div class="card" style="position:relative;">
-
-      <!-- STATUS -->
-      <div style="
-        position:absolute;
-        top:10px;
-        right:10px;
-        font-size:10px;
-        font-weight:bold;
-        padding:4px 8px;
-        border-radius:6px;
-        background:${s.active ? 'var(--success)' : 'var(--danger)'};
-        color:white;
-      ">
-        ${s.active ? 'ATIVO' : 'INATIVO'}
-      </div>
-
-      <h4 style="margin-bottom:5px;">${s.name}</h4>
-
-      <p style="font-size:12px;color:var(--text-gray);margin-bottom:10px;">
-        ${s.duration ? s.duration + ' minutos' : 'Tempo variável'}
-      </p>
-
-      <div style="margin-bottom:15px;">
-        <span style="
-          color:var(--teal);
-          font-weight:bold;
-          font-size:18px;
-        ">
-          ${s.price === null ? 'A combinar' : 'R$ ' + s.price}
-        </span>
-      </div>
-
-      <button 
-        class="btn-action btn-confirm"
-        style="width:100%;justify-content:center"
-        onclick="editService(${s.id})"
-      >
-        <i class="fas fa-edit"></i> Editar
-      </button>
-
+    <div class="card">
+      <h4>${s.name}</h4>
     </div>
   `).join('');
 }
@@ -118,56 +81,41 @@ document.getElementById('service-price').disabled = noPrice;
 }
 
 
-function saveService() {
+
+
+async function saveService() {
   const id = document.getElementById('service-id').value;
 
-  const noPrice = document.getElementById('service-no-price').checked;
-
   const data = {
-    id: id ? Number(id) : Date.now(),
     name: document.getElementById('service-name').value.trim(),
-
-    price: noPrice
-      ? null
-      : (
-          document.getElementById('service-price').value
-          ? Number(document.getElementById('service-price').value)
-          : null
-        ),
-
-    duration: document.getElementById('service-duration').value
-      ? Number(document.getElementById('service-duration').value)
-      : null,
-
+    price: document.getElementById('service-price').value || null,
+    duration: document.getElementById('service-duration').value || null,
     active: document.getElementById('service-active').checked
   };
 
-  if (!data.name) return alert('Informe o nome do serviço.');
+  if (!data.name) return alert('Informe o nome');
 
   if (id) {
-    services = services.map(s => s.id == id ? data : s);
+    await sb.from('services').update(data).eq('id', id);
   } else {
-    services.push(data);
+    await sb.from('services').insert([data]);
   }
 
-  localStorage.setItem('gp_services', JSON.stringify(services));
   closeModal('modal-service');
   renderServices();
 }
 
-function deleteService() {
+async function deleteService() {
   const id = document.getElementById('service-id').value;
-  if (!id) return;
 
-  if (!confirm('Tem certeza que deseja excluir este serviço?')) return;
+  if (!confirm('Excluir?')) return;
 
-  services = services.filter(s => s.id != id);
-
-  localStorage.setItem('gp_services', JSON.stringify(services));
+  await sb.from('services').delete().eq('id', id);
 
   closeModal('modal-service');
   renderServices();
 }
+
 
 
  // =======================
@@ -175,7 +123,7 @@ function deleteService() {
   // =======================
 
   
-let gp_users = JSON.parse(localStorage.getItem('gp_users'));
+let gp_users = [];
 
   if (!gp_users) {
     gp_users = [
@@ -202,7 +150,8 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
 
     let currentUser = null;
 
-        let appointments = JSON.parse(localStorage.getItem('gp_apps')) || [];
+
+        let appointments = [];
         let products = JSON.parse(localStorage.getItem('gp_prods')) || [
             {id: 1, name: 'Pomada Matte', price: 45.00, priceOld: 55.00, stock: 12, img: '', desc: 'Fixação extra forte para o dia todo.', isPromo: true},
             {id: 2, name: 'Óleo para Barba', price: 35.00, priceOld: 0, stock: 3, img: '', desc: 'Hidratação profunda e brilho.', isPromo: false}
@@ -223,42 +172,26 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
 
 
         
-        function doLogin() {
-            const login = document.getElementById('login-user').value.trim();
-            const pass  = document.getElementById('login-pass').value;
+        async function doLogin() {
+  const login = document.getElementById('login-user').value.trim();
+  const pass  = document.getElementById('login-pass').value;
 
-            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
-            const found = users.find(u => u.login === login && u.password === pass);
+  const { data: users } = await sb.from('users').select('*');
 
-            if (!found) {
-                document.getElementById('login-error').innerText = 'Usuário ou senha inválidos';
-                document.getElementById('login-error').style.display = 'block';
-                return;
-            }
+  const found = users.find(u => u.login === login && u.password === pass);
 
-            
-            if (!found.active) {
-            document.getElementById('login-error').innerText = 'Usuário desativado';
-            document.getElementById('login-error').style.display = 'block';
-            return;
-            }
+  if (!found) {
+    document.getElementById('login-error').innerText = 'Usuário ou senha inválidos';
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
 
+  currentUser = found;
+  localStorage.setItem('gp_logged_user', JSON.stringify(found));
 
-            currentUser = found;
-            localStorage.setItem('gp_logged_user', JSON.stringify(found));
-
-            
-            if (found.mustChangePassword) {
-                document.getElementById('login-screen').style.display = 'none';
-                openChangePasswordModal();
-                return;
-            }
-
-
-            document.getElementById('login-screen').style.display = 'none';
-            initApp();
-        }
-
+  document.getElementById('login-screen').style.display = 'none';
+  initApp();
+}
        
 
         function doLogout() {  localStorage.removeItem('gp_logged_user');location.reload();}
@@ -288,19 +221,33 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
         }
 
         // ✅ Render geral
-        renderAll();
+        loadAppointments();
+
+        
+        
+        if (!window.appInterval) {
+            window.appInterval = setInterval(loadAppointments, 5000);
+        }
+
+
+
+        renderProducts();
+        renderServices();
+        renderUsers();
+        renderBlocks();
+        checkNotifications();
+
         }
 
         function renderAll() {
-            appointments = JSON.parse(localStorage.getItem('gp_apps') || '[]');
             renderAgenda();
             renderProducts();
             renderServices();
             renderUsers();
             renderBlocks();
             checkNotifications();
-        
         }
+
 
         function save() {
             localStorage.setItem('gp_apps', JSON.stringify(appointments));
@@ -360,105 +307,99 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
             document.getElementById('notif-dropdown').classList.toggle('active');
         }
 
-        function editUser(userId) {
-            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
+        async function editUser(userId) {
+  const { data: users } = await sb.from('users').select('*');
 
-            document.getElementById('edit-user-id').value = user.id;
-            document.getElementById('edit-user-name').value = user.name;
-            document.getElementById('edit-user-login').value = user.login;
-            document.getElementById('edit-user-role').value = user.role;
-            document.getElementById('edit-user-active').checked = user.active;
+  const user = users.find(u => u.id === userId);
+  if (!user) return;
 
-            const permBox = document.getElementById('edit-user-permissions');
-            const allPerms = [
-            { id: 'agenda', label: 'Agenda' },
-            { id: 'servicos', label: 'Serviços' },
-            { id: 'produtos', label: 'Produtos' },
-            { id: 'usuarios', label: 'Usuários' },
-            { id: 'horarios', label: 'Bloqueios' },
-            { id: 'dashboard', label: 'Dashboard' }
-            ];
+  document.getElementById('edit-user-id').value = user.id;
+  document.getElementById('edit-user-name').value = user.name;
+  document.getElementById('edit-user-login').value = user.login;
+  document.getElementById('edit-user-role').value = user.role;
+  document.getElementById('edit-user-active').checked = user.active;
 
-            permBox.innerHTML = allPerms.map(p => `
-            <span class="tag ${user.permissions.includes(p.id) ? 'selected' : ''}"
-                    data-perm="${p.id}"
-                    onclick="this.classList.toggle('selected')">
-                ${p.label}
-            </span>
-            `).join('');
+  const permBox = document.getElementById('edit-user-permissions');
 
+  const allPerms = [
+    { id: 'agenda', label: 'Agenda' },
+    { id: 'servicos', label: 'Serviços' },
+    { id: 'produtos', label: 'Produtos' },
+    { id: 'usuarios', label: 'Usuários' },
+    { id: 'horarios', label: 'Horários' },
+    { id: 'dashboard', label: 'Dashboard' }
+  ];
 
-            openModal('modal-edit-user');
-        }
+  permBox.innerHTML = allPerms.map(p => `
+    <span class="tag ${user.permissions.includes(p.id) ? 'selected' : ''}"
+      data-perm="${p.id}"
+      onclick="this.classList.toggle('selected')">
+      ${p.label}
+    </span>
+  `).join('');
 
-        function saveUserEdit() {
-            const id = Number(document.getElementById('edit-user-id').value);
+  openModal('modal-edit-user');
+}
 
-            let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+       async function saveUserEdit() {
+  const id = Number(document.getElementById('edit-user-id').value);
 
-            
-            const permissions = Array.from(
-            document.querySelectorAll('#edit-user-permissions .tag.selected')
-            ).map(t => t.dataset.perm);
+  const permissions = Array.from(
+    document.querySelectorAll('#edit-user-permissions .tag.selected')
+  ).map(t => t.dataset.perm);
 
+  const { error } = await sb
+    .from('users')
+    .update({
+      name: document.getElementById('edit-user-name').value,
+      role: document.getElementById('edit-user-role').value,
+      permissions,
+      active: document.getElementById('edit-user-active').checked
+    })
+    .eq('id', id);
 
-            users = users.map(u => {
-                if (u.id === id) {
-                u.name = document.getElementById('edit-user-name').value;
-                u.role = document.getElementById('edit-user-role').value;
-                u.permissions = permissions;
-                u.active = document.getElementById('edit-user-active').checked;
-                }
-                return u;
-            });
+  if (error) {
+    console.error(error);
+    alert('Erro ao salvar usuário');
+    return;
+  }
 
-            localStorage.setItem('gp_users', JSON.stringify(users));
+  closeModal('modal-edit-user');
+  renderUsers();
+}
 
-            closeModal('modal-edit-user');
-            renderUsers();
-        }
+       async function deleteUser() {
+  const id = Number(document.getElementById('edit-user-id').value);
 
-        function deleteUser() {
-            const id = Number(document.getElementById('edit-user-id').value);
+  if (!confirm('Excluir usuário?')) return;
 
-            if (id === currentUser.id) {
-                alert('Você não pode excluir o próprio usuário.');
-                return;
-            }
+  await sb.from('users').delete().eq('id', id);
 
-            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-
-            let users = JSON.parse(localStorage.getItem('gp_users')) || [];
-            users = users.filter(u => u.id !== id);
-
-            localStorage.setItem('gp_users', JSON.stringify(users));
-
-            closeModal('modal-edit-user');
-            renderUsers();
-        }
+  closeModal('modal-edit-user');
+  renderUsers();
+}
 
 
         // AGENDA
-        function renderAgenda() {
-            const list = document.getElementById('agenda-list');
-           
-            
-            appointments = JSON.parse(localStorage.getItem('gp_apps') || '[]');
-            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
-            let filtered = appointments.filter(a => a.date === selectedDate);
+       async function renderAgenda() {
+  const list = document.getElementById('agenda-list');
 
+  const { data: users } = await sb.from('users').select('*');
 
-            if (currentUser.role !== 'admin') {
-                filtered = filtered.filter(a => String(a.barberId) === String(currentUser.id));
-            }
+  let filtered = appointments.filter(a => a.date === selectedDate);
 
-            list.innerHTML = filtered.length ? '' : '<div style="text-align:center; padding:40px; color:var(--text-gray);">Sem cortes marcados.</div>';
-            let total = 0;
-            filtered.sort((a,b) => a.time.localeCompare(b.time)).forEach(a => {
+  if (currentUser.role !== 'admin') {
+    filtered = filtered.filter(a => String(a.barberId) === String(currentUser.id));
+  }
 
-    // ✅ pega barbeiro
+  list.innerHTML = filtered.length
+    ? ''
+    : '<div style="text-align:center; padding:40px; color:var(--text-gray);">Sem cortes marcados.</div>';
+
+  let total = 0;
+
+  filtered.sort((a,b) => a.time.localeCompare(b.time)).forEach(a => {
+
     const barber = users.find(u => String(u.id) === String(a.barberId));
     const barberName = barber ? barber.name : 'Não definido';
 
@@ -468,82 +409,107 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
     item.className = `agenda-item ${a.status}`;
 
     item.innerHTML = `
-        <div style="flex:1">
-            <div class="item-time">${a.time}</div>
-            <h4 style="font-size:16px;">${a.name}</h4>
+      <div style="flex:1">
+        <div class="item-time">${a.time}</div>
+        <h4 style="font-size:16px;">${a.name}</h4>
 
-            <p style="font-size:12px; color:var(--text-gray)">
-                ${currentUser.role === 'admin' ? `💈 ${barberName}<br>` : ''}
-                ${a.services.join(', ')} • R$ ${a.price}
-            </p>
+        <p style="font-size:12px; color:var(--text-gray)">
+          ${currentUser.role === 'admin' ? `💈 ${barberName}<br>` : ''}
+          ${a.services.join(', ')} • R$ ${a.price}
+        </p>
 
-            <div class="item-actions">
-                ${a.status === 'open' ? `<button class="btn-action btn-confirm" onclick="confirmApp(${a.id})"><i class="fas fa-check"></i> Confirmar</button>` : ''}
-                <button class="btn-action btn-done" onclick="completeApp(${a.id})"><i class="fas fa-check"></i> Concluir</button>
-                <button class="btn-action btn-cancel" onclick="cancelApp(${a.id})"><i class="fas fa-times"></i></button>
-                <a href="https://wa.me/55${a.tel}" class="btn-action btn-wpp"><i class="fab fa-whatsapp"></i></a>
-            </div>
+        <div class="item-actions">
+          ${a.status === 'open' ? `<button onclick="confirmApp(${a.id})">✔</button>` : ''}
+          <button onclick="completeApp(${a.id})">✅</button>
+          <button onclick="cancelApp(${a.id})">❌</button>
         </div>
+      </div>
     `;
 
     list.appendChild(item);
-});
-            document.getElementById('display-total').innerText = `R$ ${total}`;
+  });
+
+  document.getElementById('display-total').innerText = `R$ ${total}`;
+}
+
+       async function confirmApp(id) {
+            await sb
+                .from('appointments')
+                .update({ status: 'confirmed' })
+                .eq('id', id);
+
+            loadAppointments();
+        }
+        
+        async function completeApp(id) {
+            await sb
+                .from('appointments')
+                .update({ status: 'completed' })
+                .eq('id', id);
+
+            loadAppointments();
         }
 
-        function confirmApp(id) {
-            appointments.find(x => x.id === id).status = 'confirmed';
-            alert('Confirmado e notificado via WhatsApp!');
-            renderAll();
+        async function cancelApp(id) {
+            if (!confirm('Cancelar?')) return;
+
+            await sb
+                .from('appointments')
+                .update({ status: 'cancelled' })
+                .eq('id', id);
+
+            loadAppointments();
         }
-        function completeApp(id) { appointments.find(x => x.id === id).status = 'completed'; renderAll(); }
-        function cancelApp(id) { if(confirm('Cancelar?')) { appointments.find(x => x.id === id).status = 'cancelled'; renderAll(); } }
 
-        function saveAppointment() {
-            const barberId = Number(document.getElementById('app-barber').value);
-            const name = document.getElementById('app-name').value;
-            const tel  = document.getElementById('app-tel').value;
-            const date = document.getElementById('app-date').value;
-            const time = document.getElementById('app-time').value;
+        async function saveAppointment() {
+    const barberId = Number(document.getElementById('app-barber').value);
+    const name = document.getElementById('app-name').value;
+    const tel  = document.getElementById('app-tel').value;
+    const date = document.getElementById('app-date').value;
+    const time = document.getElementById('app-time').value;
 
-            const tags = document.querySelectorAll('.tag.selected');
-            if (!name || !time || tags.length === 0) {
-                return alert('Preencha tudo!');
-            }
+    const tags = document.querySelectorAll('.tag.selected');
 
+    if (!name || !time || tags.length === 0) {
+        return alert('Preencha tudo!');
+    }
 
-            let selectedServices = [];
-            let price = 0;
+    let selectedServices = [];
+    let price = 0;
+    let totalDuration = 0;
 
-            let totalDuration = 0;
+    tags.forEach(t => {
+        selectedServices.push(t.dataset.name);
+        price += parseInt(t.dataset.price);
 
-            tags.forEach(t => {
-            selectedServices.push(t.dataset.name);
-            price += parseInt(t.dataset.price);
-            
-            // ✅ pegar duração do serviço
-            const service = services.find(s => s.name === t.dataset.name);
-            if (service && service.duration) {
-                totalDuration += service.duration;
-            }
-            });
+        const service = services.find(s => s.name === t.dataset.name);
+        if (service && service.duration) {
+            totalDuration += service.duration;
+        }
+    });
 
-            appointments.push({
-                id: Date.now(),
-                name,
-                tel,
-                date,
-                time,
-                services: selectedServices,
-                price,
-                status: 'open',
-                barberId: String(barberId),
-                duration: totalDuration
-            });
+    const { error } = await sb.from('appointments').insert([{
+        name,
+        tel,
+        date,
+        time,
+        services: selectedServices,
+        price,
+        status: 'open',
+        barberId: String(barberId),
+        duration: totalDuration
+    }]);
 
-            closeModal('modal-agenda');
-            renderAll();
-            }
+    if (error) {
+        console.error(error);
+        alert('Erro ao salvar!');
+        return;
+    }
+
+    closeModal('modal-agenda');
+    loadAppointments();
+}
+
 
         // PRODUTOS
         function renderProducts() {
@@ -626,7 +592,6 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
             renderAll();
             closeModal('modal-produto');
 
-            renderAll(); closeModal('modal-produto');
         }
 
         function deleteProduct() {
@@ -682,7 +647,7 @@ let gp_users = JSON.parse(localStorage.getItem('gp_users'));
         function openChangePasswordModal() {  document.getElementById('new-pass').value = '';  document.getElementById('confirm-pass').value = '';  openModal('modal-change-password');}        
         function openCreateUserModal() {  document.getElementById('new-user-name').value = '';  document.getElementById('new-user-login').value = '';  document.getElementById('new-user-pass').value = '';  document.getElementById('new-user-role').value = 'barbeiro';  openModal('modal-create-user');}
         
-function createUser() {
+async function createUser() {
   const name = document.getElementById('new-user-name').value.trim();
   const login = document.getElementById('new-user-login').value.trim();
   const pass = document.getElementById('new-user-pass').value;
@@ -693,85 +658,62 @@ function createUser() {
   );
   const permissions = Array.from(permissionEls).map(p => p.value);
 
-  // Validações básicas
   if (!name || !login || !pass) {
-    alert('Preencha nome, login e senha.');
+    alert('Preencha tudo');
     return;
   }
 
-  if (pass.length < 4) {
-    alert('A senha deve ter pelo menos 4 caracteres.');
-    return;
-  }
-
-  let users = JSON.parse(localStorage.getItem('gp_users')) || [];
-
-  // Impede login duplicado
-  if (users.some(u => u.login === login)) {
-    alert('Já existe um usuário com esse login.');
-    return;
-  }
-
-  // Modelo de usuário (BACKEND-READY)
   const newUser = {
     id: Date.now(),
     name,
     login,
-    password: pass,           // depois vira hash no backend
-    mustChangePassword: true, // troca obrigatória no primeiro login
+    password: pass,
+    mustChangePassword: true,
     role,
     permissions,
     active: true
   };
 
-  // 💾 Hoje: localStorage
-  users.push(newUser);
-  localStorage.setItem('gp_users', JSON.stringify(users));
+  const { error } = await sb.from('users').insert([newUser]);
 
-  // 🌐 Amanhã: API (já preparado)
-  // await fetch('/api/users', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(newUser)
-  // });
+  if (error) {
+    console.error(error);
+    alert('Erro ao criar usuário');
+    return;
+  }
 
   closeModal('modal-create-user');
   renderUsers();
-
-  alert('Usuário criado com sucesso!');
 }
 
-        function saveNewPassword() {
-        const pass = document.getElementById('new-pass').value;
-        const confirm = document.getElementById('confirm-pass').value;
+      async function saveNewPassword() {
+  const pass = document.getElementById('new-pass').value;
+  const confirm = document.getElementById('confirm-pass').value;
 
-        if (!pass || pass.length < 4) {
-            alert('Senha muito curta.');
-            return;
-        }
+  if (!pass || pass.length < 4) {
+    alert('Senha muito curta.');
+    return;
+  }
 
-        if (pass !== confirm) {
-            alert('As senhas não coincidem.');
-            return;
-        }
+  if (pass !== confirm) {
+    alert('As senhas não coincidem.');
+    return;
+  }
 
-        let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+  await sb
+    .from('users')
+    .update({
+      password: pass,
+      mustChangePassword: false
+    })
+    .eq('id', currentUser.id);
 
-        users = users.map(u => {
-            if (u.id === currentUser.id) {
-            u.password = pass;
-            u.mustChangePassword = false;
-            currentUser = u;
-            }
-            return u;
-        });
+  currentUser.password = pass;
+  currentUser.mustChangePassword = false;
 
-        localStorage.setItem('gp_users', JSON.stringify(users));
-        localStorage.setItem('gp_logged_user', JSON.stringify(currentUser));
+  closeModal('modal-change-password');
+}
 
-        closeModal('modal-change-password');
-        initApp();
-        }
 
         
         function openResetPasswordModal(userId) {
@@ -795,7 +737,7 @@ function createUser() {
 
         function changeDate(v) { selectedDate = v; document.getElementById('display-date').innerText = formatDate(v); renderAgenda(); closeModal('modal-calendar'); }
        
-        function renderUsers() {
+      async function renderUsers() {
   const box = document.getElementById('user-list');
 
   if (currentUser.role !== 'admin') {
@@ -803,33 +745,40 @@ function createUser() {
     return;
   }
 
-  const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+  const { data: users, error } = await sb
+    .from('users')
+    .select('*')
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao carregar usuários:', error);
+    box.innerHTML = '<p>Erro ao carregar usuários</p>';
+    return;
+  }
 
   box.innerHTML = `
     <button class="btn-primary" onclick="openCreateUserModal()">
       + Criar novo usuário
     </button>
 
-    ${users.map(u => `
+    ${(users || []).map(u => `
       <div class="card" style="margin-top:15px">
         <h4>${u.name}</h4>
+
         <p style="font-size:12px;color:var(--text-gray)">
           Login: <strong>${u.login}</strong><br>
           Perfil: ${u.role}<br>
-          Permissões: ${u.permissions.join(', ')}
+          Permissões: ${(u.permissions || []).join(', ')}
         </p>
 
         <button class="btn-action btn-confirm"
           onclick="editUser(${u.id})">
-        ✏️ Editar usuário
+          ✏️ Editar usuário
         </button>
       </div>
-      
     `).join('')}
   `;
 }
-        
-
         function renderBlocks() { document.getElementById('block-list').innerHTML = blocks.map(b => `<div class="card" style="display:flex; justify-content:space-between;"><span>${b.start} às ${b.end}</span><i class="fas fa-trash" onclick="removeBlock(${b.id})" style="cursor:pointer; color:var(--danger)"></i></div>`).join(''); }
         function addBlock() {
             const s = document.getElementById('block-start').value;
@@ -938,8 +887,8 @@ function createUser() {
                 firstAvailable.selected = true;
             }
             }
-            function loadBarbers() {
-            const users = JSON.parse(localStorage.getItem('gp_users')) || [];
+           async function loadBarbers() {
+            const { data: users } = await sb.from('users').select('*');
 
             const barbers = users.filter(u =>
                 u.role === 'barbeiro' && u.active
@@ -950,42 +899,32 @@ function createUser() {
             select.innerHTML = barbers.map(b =>
                 `<option value="${b.id}">${b.name}</option>`
             ).join('');
-
-            // se for barbeiro logado, já seleciona ele
-            if (currentUser.role === 'barbeiro') {
-                select.value = currentUser.id;
-                }
             }
 
             
-          function renderServiceTags() {
-            const box = document.getElementById('service-select');
+          async function renderServiceTags() {
+  const { data } = await sb.from('services').select('*');
+  services = data || [];
 
-            // ✅ proteção
-            if (!box) return;
+  const box = document.getElementById('service-select');
 
-            // ✅ sempre pegar do storage atualizado
-            services = JSON.parse(localStorage.getItem('gp_services')) || [];
+  const activeServices = services.filter(s => s.active);
 
-            const activeServices = services.filter(s => s.active);
+  box.innerHTML = activeServices.map(s => `
+    <span class="tag"
+      data-price="${s.price || 0}"
+      data-name="${s.name}">
+      ${s.name} ${s.price ? 'R$ ' + s.price : ''}
+    </span>
+  `).join('');
 
-            box.innerHTML = activeServices.map(s => `
-                <span class="tag"
-                data-price="${s.price || 0}"
-                data-name="${s.name}">
-                ${s.name} ${s.price ? 'R$ ' + s.price : ''}
-                </span>
-            `).join('');
-
-            // ✅ reaplica eventos
-            box.querySelectorAll('.tag').forEach(t => {
-                t.onclick = () => {
-                t.classList.toggle('selected');
-                loadAvailableTimes();
-                };
-            });
-        }   
-
+  box.querySelectorAll('.tag').forEach(t => {
+    t.onclick = () => {
+      t.classList.toggle('selected');
+      loadAvailableTimes();
+    };
+  });
+}
         
             document.addEventListener('change', (e) => {
             if (e.target.id === 'service-no-price') {
@@ -994,6 +933,26 @@ function createUser() {
                 if (e.target.checked) input.value = '';
             }
             });
+
+
+
+
+            async function loadAppointments() {
+            const { data, error } = await sb
+                .from('appointments')
+                .select('*')
+                .order('date', { ascending: true });
+
+            if (error) {
+                console.error('Erro Supabase:', error);
+                return;
+            }
+
+            appointments = data || [];
+            renderAgenda();
+            }
+
+// Global 
 
 
 window.doLogin = doLogin;
