@@ -123,30 +123,6 @@ async function deleteService() {
   // =======================
 
   
-let gp_users = [];
-
-  if (!gp_users) {
-    gp_users = [
-      {
-        id: 1,
-        name: 'Dev - Administrador',
-        login: 'admin',
-        password: 'admin',
-        mustChangePassword: false,
-        role: 'admin',
-        permissions: [
-          'agenda',
-          'produtos',
-          'servicos',
-          'usuarios',
-          'horarios',
-          'dashboard'
-        ],
-        active: true
-      }
-    ];
-    localStorage.setItem('gp_users', JSON.stringify(gp_users));
-  }
 
     let currentUser = null;
 
@@ -716,25 +692,26 @@ async function createUser() {
 
 
         
-        function openResetPasswordModal(userId) {
-        let users = JSON.parse(localStorage.getItem('gp_users')) || [];
+       async function openResetPasswordModal(userId) {
 
-        const user = users.find(u => u.id == userId);
-        if (!user) return;
+  if (!confirm('Resetar senha para 1234?')) return;
 
-        // ✅ redefine senha
-        user.password = '1234';
+  const { error } = await sb
+    .from('users')
+    .update({
+      password: '1234',
+      mustChangePassword: true
+    })
+    .eq('id', userId);
 
-        // ✅ força troca no próximo login
-        user.mustChangePassword = true;
+  if (error) {
+    console.error(error);
+    alert('Erro ao redefinir senha');
+    return;
+  }
 
-        // ✅ salva alteração
-        localStorage.setItem('gp_users', JSON.stringify(users));
-
-        // ✅ feedback profissional
-        alert(`Senha redefinida do usuário ${user.login}. A nova senha temporária é 1234.`);
-        }
-
+  alert('✅ Senha redefinida para 1234');
+}
         function changeDate(v) { selectedDate = v; document.getElementById('display-date').innerText = formatDate(v); renderAgenda(); closeModal('modal-calendar'); }
        
       async function renderUsers() {
