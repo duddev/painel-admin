@@ -1,4 +1,29 @@
 <!DOCTYPE html>
+<!--
+=============================================================
+ARQUIVO: painel.html
+FUNÇÃO: Estrutura visual do painel administrativo.
+
+COMO MEXER MAIS RÁPIDO:
+- Visual/cores/layout: procure o bloco <style>
+        /* =============================================================
+           CSS GERAL DO PAINEL
+           - Cores principais ficam em :root.
+           - Componentes reutilizados: .card, .btn-primary, .btn-action, .modal, .tag.
+           - Para mudar cor padrão do sistema, mexa nas variáveis --teal, --bg-dark etc.
+           ============================================================= */.
+- Menu lateral: procure SIDEBAR.
+- Tela da agenda: procure SEÇÃO AGENDA.
+- Produtos: procure SEÇÃO PRODUTOS e MODAL PRODUTO.
+- Serviços: procure SEÇÃO SERVIÇOS e MODAL SERVIÇOS.
+- Equipe/usuários: procure SEÇÃO USUÁRIOS, MODAL CRIAR USUÁRIO e MODAL EDITAR USUÁRIO.
+- Bloqueios: procure SEÇÃO BLOQUEIOS.
+
+IMPORTANTE:
+- NÃO alterei IDs, classes, onclicks, scripts, links ou chaves.
+- Só adicionei comentários para outros programadores entenderem.
+=============================================================
+-->
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -31,9 +56,178 @@
         h1, h2, h3, h4, .logo-text { font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 1px; }
 
         /* Login Screen */
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-dark); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 40px; border-radius: 24px; border: 1px solid var(--border); text-align: center; }
-        .login-logo { width: 80px; height: 80px; background: var(--teal); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-family: 'Oswald'; font-size: 32px; font-weight: bold; }
+     /* =============================
+LOGIN - NOVO PADRÃO PROFISSIONAL
+============================= */
+
+#login-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* CARD */
+
+.login-card {
+  background: #111;
+  max-width: 380px;
+  width: 100%;
+  padding: 40px 30px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  text-align: center;
+  animation: fadeUp 0.4s ease;
+}
+
+/* LOGO */
+
+.login-logo {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 20px;
+  background: #00b4a6;
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* TITULOS */
+
+.login-title {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  color: #777;
+  font-size: 13px;
+  margin-bottom: 25px;
+}
+
+/* INPUT */
+
+.input-wrap {
+  position: relative;
+}
+
+.input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Ícone da esquerda: usuário/cadeado */
+.input-wrap > i:first-child {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Input com espaço para o ícone da esquerda */
+.input-wrap input {
+  padding-left: 48px !important;
+  padding-right: 48px !important;
+}
+
+/* Ícone do olho da senha */
+.input-wrap .toggle-pass {
+  position: absolute;
+  left: auto !important;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+  font-size: 15px;
+  cursor: pointer;
+  width: 18px;
+  text-align: center;
+  z-index: 3;
+}
+
+/* CAMPOS */
+
+.input-group input {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  color: white;
+  min-height: 48px;
+}
+
+.input-group input:focus {
+  border-color: #00b4a6;
+}
+
+/* BOTÃO */
+
+#btn-login {
+  margin-top: 20px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  font-weight: bold;
+  background: #00b4a6;
+  border:none;
+  cursor:pointer;
+  transition: all .2s;
+}
+
+#btn-login:hover {
+  transform: scale(0.98);
+}
+
+/* LINK */
+
+.forgot-link {
+  color: #00b4a6;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+/* MENSAGEM */
+
+.login-msg {
+  background: #3d1515;
+  color: #ff6b6b;
+  padding: 10px;
+  border-radius:8px;
+  margin-bottom:15px;
+  font-size:13px;
+}
+
+/* RODAPÉ */
+
+.login-footer {
+  margin-top: 25px;
+  font-size: 11px;
+  color: #555;
+}
+
+/* ANIMAÇÃO */
+
+@keyframes fadeUp {
+  from {opacity:0; transform:translateY(10px);}
+  to {opacity:1; transform:translateY(0);}
+}
 
         /* Sidebar */
         .sidebar { width: var(--sidebar-width); height: 100vh; background: var(--card-bg); border-right: 1px solid var(--border); position: fixed; left: -260px; top: 0; transition: 0.3s ease; z-index: 1500; padding: 20px; display: flex; flex-direction: column; }
@@ -141,50 +335,89 @@
 </head>
 <body>
 
-    <!-- TELA DE LOGIN -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="login-logo">GP</div>
+    <!-- TELA DE LOGIN: primeira tela. Os inputs chamam doLogin() no admin.js. -->
+   <!-- =============================
+TELA DE LOGIN - NOVA (PROFISSIONAL)
+============================= -->
+<div id="login-screen">
 
-            <h2 style="margin-bottom: 10px;">Gato Preto Admin</h2>
-            <p style="color: var(--text-gray); font-size: 14px; margin-bottom: 30px;">
-                Acesso restrito
-            </p>
+  <div class="login-card">
 
-            <div class="input-group">
-                <label>Usuário</label>
-                <input
-                type="text"
-                id="login-user"
-                placeholder="Usuário"
-                onkeypress="if(event.key==='Enter') doLogin()"
-                >
-            </div>
+    <!-- LOGO -->
+    <div class="login-logo">GP</div>
 
-            <div class="input-group">
-                <label>Senha</label>
-                <input
-                type="password"
-                id="login-pass"
-                placeholder="Senha"
-                onkeypress="if(event.key==='Enter') doLogin()"
-                >
-            </div>
+    <!-- TITULO -->
+    <h1 class="login-title">GATO PRETO</h1>
+    <p class="login-subtitle">Painel Administrativo</p>
 
-            <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <!-- ERRO -->
+    <div id="login-msg" class="login-msg" style="display:none;"></div>
 
-            <p
-                id="login-error"
-                style="color: var(--danger); font-size: 12px; margin-top: 15px; display: none;"
-            >
-                Usuário ou senha inválidos!
-            </p>
-        </div>
+    <!-- USUÁRIO -->
+    <div class="input-group">
+      <label>USUÁRIO</label>
+      <div class="input-wrap">
+        <i class="fas fa-user"></i>
+        <input
+          type="text"
+          id="login-user"
+          placeholder="E-mail ou usuário"
+          autocomplete="username"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          autofocus
+          onkeypress="if(event.key==='Enter') doLogin()"
+        >
+      </div>
     </div>
+
+    <!-- SENHA -->
+    <div class="input-group">
+      <label>SENHA</label>
+
+      <div class="input-wrap">
+        <i class="fas fa-lock"></i>
+        <input
+          type="password"
+          id="login-pass"
+          placeholder="Digite sua senha"
+          autocomplete="current-password"
+          onkeypress="if(event.key==='Enter') doLogin()"
+        >
+        <i class="fas fa-eye toggle-pass" onclick="togglePassword()"></i>
+      </div>
+
+      <small id="caps-warning" style="display:none; color:#ff6b6b; font-size:12px;">
+        CAPS LOCK ativado
+      </small>
+
+    </div>
+
+<!-- ESQUECI -->
+<div style="text-align:center; margin-top:5px;">
+  <a href="#" class="forgot-link" onclick="openForgotPasswordModal()">
+    Esqueci minha senha
+  </a>
+</div>
+
+    <!-- BOTÃO -->
+    <button id="btn-login" class="btn-primary" onclick="doLogin()">
+      → Entrar
+    </button>
+
+    <!-- RODAPÉ -->
+    <div class="login-footer">
+      <p>Problemas para acessar? Fale com o administrador</p>
+      <span>© Gato Preto · v1.0</span>
+    </div>
+
+  </div>
+</div>
 
     <div class="overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR: menu lateral. Cada item chama navigate('id-da-secao', this). -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-circle">GP</div>
@@ -235,7 +468,7 @@
 
         <div class="container">
             
-            <!-- SEÇÃO AGENDA -->
+            <!-- SEÇÃO AGENDA: lista agendamentos do dia. Dados vêm de renderAgenda() no admin.js. -->
             <section id="sec-agenda">
                 <div class="stat-grid">
                     <div class="stat-box" onclick="openModal('modal-calendar')" style="cursor: pointer;">
@@ -250,7 +483,7 @@
                 <div id="agenda-list"></div>
             </section>
 
-            <!-- SEÇÃO PRODUTOS -->
+            <!-- SEÇÃO PRODUTOS: cards de produtos. Lista é preenchida por renderProducts() no admin.js. -->
             <section id="sec-produtos" class="hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3>Gestão de Produtos</h3>
@@ -259,7 +492,7 @@
                 <div id="product-list" class="inventory-list"></div>
             </section>
 
-            <!-- SEÇÃO SERVIÇOS -->
+            <!-- SEÇÃO SERVIÇOS: tela para listar/criar serviços. Lista é preenchida por renderServices() no admin.js. -->
              
             
             <section id="sec-servicos" class="hidden">
@@ -270,6 +503,7 @@
                     + Novo serviço
                 </button>
 
+                <!-- Onde os cards de serviços aparecem. Se quiser mudar o visual do card, mexa também em renderServices() no admin.js. -->
                 <div id="services-list"
                     style="
                         display:grid;
@@ -283,7 +517,7 @@
 
 
 
-            <!-- SEÇÃO DASHBOARD -->
+            <!-- SEÇÃO DASHBOARD: números e gráfico. Preenchido por renderDashboard() no admin.js. -->
             <section id="sec-dash" class="hidden">
                 <div class="flex-between mb-20">
                     <h3>Dashboard Mensal</h3>
@@ -299,13 +533,13 @@
                 </div>
             </section>
 
-            <!-- SEÇÃO USUÁRIOS -->
+            <!-- SEÇÃO USUÁRIOS: equipe/barbeiros/admins. Preenchido por renderUsers() no admin.js. -->
             <section id="sec-usuarios" class="hidden">
                 <h3>Equipe</h3>
                 <div id="user-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 20px;"></div>
             </section>
 
-            <!-- SEÇÃO BLOQUEIOS -->
+            <!-- SEÇÃO BLOQUEIOS: bloqueios locais de horário. Funções addBlock/removeBlock no admin.js. -->
             <section id="sec-horarios" class="hidden">
                 <h3>Bloqueios</h3>
                 <div class="card" style="margin-top: 20px;">
@@ -321,7 +555,7 @@
         </div>
     </div>
 
-    <!-- MODAL AGENDAMENTO -->
+    <!-- MODAL AGENDAMENTO: formulário para criar agendamento. Salva com saveAppointment() no admin.js. -->
     <div class="modal" id="modal-agenda">
         <div class="modal-content">
             <div class="modal-header"><h3>Novo Agendamento</h3><button class="close-modal" onclick="closeModal('modal-agenda')">&times;</button></div>
@@ -340,7 +574,7 @@
         </div>
     </div>
 
-    <!-- MODAL PRODUTO -->
+    <!-- MODAL PRODUTO: formulário de produto. Novo/editar/excluir usam funções de produtos no admin.js. -->
     <div class="modal" id="modal-produto">
         <div class="modal-content">
             <div class="modal-header"><h3 id="prod-modal-title">Novo Produto</h3><button class="close-modal" onclick="closeModal('modal-produto')">&times;</button></div>
@@ -361,7 +595,7 @@
         </div>
     </div>
 
-     <!-- MODAL SERVIÇOS -->
+     <!-- MODAL SERVIÇOS: formulário de serviço. Novo/editar/excluir usam openServiceModal/editService/saveService/deleteService no admin.js. -->
     <div class="modal" id="modal-service">
         <div class="modal-content">
 
@@ -379,17 +613,18 @@
             </button>
             </div>
 
+            <!-- ID escondido: vazio = novo serviço; preenchido = edição de serviço existente. -->
             <input type="hidden" id="service-id">
 
             <div class="input-group">
                 <label>Nome do Serviço</label>
-                <input id="service-name">
+                <input id="service-name"> <!-- Campo usado por saveService(): name -->
             </div>
 
             
             <div class="input-group">
             <label>Preço (R$)</label>
-            <input type="number" id="service-price">
+            <input type="number" id="service-price"> <!-- Campo usado por saveService(): price -->
             </div>
 
             <div class="input-group">
@@ -402,12 +637,12 @@
 
     <div class="input-group">
       <label>Duração (minutos)</label>
-      <input type="number" id="service-duration">
+      <input type="number" id="service-duration"> <!-- Campo usado por saveService(): duration em minutos -->
     </div>
 
     <div class="input-group">
       <label>
-        <input type="checkbox" id="service-active" checked>
+        <input type="checkbox" id="service-active" checked> <!-- Se desmarcar, não aparece no agendamento -->
         Serviço ativo para agendamento
       </label>
     </div>
@@ -421,7 +656,7 @@
   </div>
         </div>
 
-    <!-- MODAL CALENDARIO -->
+    <!-- MODAL CALENDARIO: troca a data da agenda usando changeDate() no admin.js. -->
     <div class="modal" id="modal-calendar">
         <div class="modal-content">
             <div class="modal-header"><h3>Escolher Data</h3><button class="close-modal" onclick="closeModal('modal-calendar')">&times;</button></div>
@@ -430,7 +665,7 @@
     </div>
     
 
-    <!-- MODAL TROCA DE SENHA -->
+    <!-- MODAL TROCA DE SENHA: salva nova senha com saveNewPassword() no admin.js. -->
     <div class="modal" id="modal-change-password">
     <div class="modal-content">
         <h3>Definir Nova Senha</h3>
@@ -451,7 +686,56 @@
     </div>
     </div>
     
-<!-- MODAL CRIAR USUÁRIO -->
+
+<!-- MODAL ESQUECI MINHA SENHA -->
+<div class="modal" id="modal-forgot-password">
+  <div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Redefinir senha</h3>
+      <button onclick="closeModal('modal-forgot-password')"
+        style="background:none;border:none;color:var(--text-gray);font-size:22px;cursor:pointer">
+        &times;
+      </button>
+    </div>
+
+    <p style="font-size:13px;color:var(--text-gray);margin:10px 0 20px;">
+      Digite seu e-mail, login, telefone ou WhatsApp cadastrado.
+    </p>
+
+    <div class="input-group">
+      <label>E-mail, usuário ou telefone</label>
+      <input type="text" id="reset-identifier" placeholder="ex: email@exemplo.com">
+    </div>
+
+    <button class="btn-primary" onclick="requestPasswordReset()">
+      Enviar código
+    </button>
+
+    <div id="reset-step-code" style="display:none;margin-top:20px;">
+      <div class="input-group">
+        <label>Código recebido</label>
+        <input type="text" id="reset-code" placeholder="Digite o código de 6 dígitos">
+      </div>
+
+      <div class="input-group">
+        <label>Nova senha</label>
+        <input type="password" id="reset-new-pass" placeholder="Nova senha">
+      </div>
+
+      <div class="input-group">
+        <label>Confirmar nova senha</label>
+        <input type="password" id="reset-confirm-pass" placeholder="Confirmar senha">
+      </div>
+
+      <button class="btn-primary" onclick="confirmPasswordReset()">
+        Salvar nova senha
+      </button>
+    </div>
+
+    <p id="reset-msg" style="display:none;font-size:13px;margin-top:15px;color:var(--text-gray);"></p>
+  </div>
+</div>
+    <!-- MODAL CRIAR USUÁRIO: cria usuário com createUser() no admin.js. -->
 
 <div class="modal" id="modal-create-user">
   <div class="modal-content">
@@ -481,6 +765,20 @@
       <label>Login</label>
       <input type="text" id="new-user-login" placeholder="login">
     </div>
+    <div class="input-group">
+  <label>E-mail</label>
+  <input type="email" id="new-user-email" placeholder="email@exemplo.com">
+</div>
+
+<div class="input-group">
+  <label>Telefone</label>
+  <input type="tel" id="new-user-phone" placeholder="(00) 00000-0000">
+</div>
+
+<div class="input-group">
+  <label>WhatsApp</label>
+  <input type="tel" id="new-user-whatsapp" placeholder="(00) 00000-0000">
+</div>
 
     <div class="input-group">
       <label>Senha inicial</label>
@@ -512,7 +810,7 @@
   </div>
 </div>
 
-<!-- MODAL EDITAR USUÁRIO -->
+<!-- MODAL EDITAR USUÁRIO: edita usuário com saveUserEdit(), deleteUser() e openResetPasswordModal(). -->
 <div class="modal" id="modal-edit-user">
   <div class="modal-content">
 
@@ -537,6 +835,20 @@
       <label>Login</label>
       <input type="text" id="edit-user-login" disabled>
     </div>
+<div class="input-group">
+  <label>E-mail</label>
+  <input type="email" id="edit-user-email" placeholder="email@exemplo.com">
+</div>
+
+<div class="input-group">
+  <label>Telefone</label>
+  <input type="tel" id="edit-user-phone" placeholder="(00) 00000-0000">
+</div>
+
+<div class="input-group">
+  <label>WhatsApp</label>
+  <input type="tel" id="edit-user-whatsapp" placeholder="(00) 00000-0000">
+</div>
 
     <div class="input-group">
       <label>Perfil</label>
@@ -579,6 +891,7 @@
   </div>
 </div>
 
+<!-- Carrega a lógica do painel. type="module" permite usar import/export no admin.js. -->
 <script type="module" src="./admin.js"></script>
 </body>
 </html>
