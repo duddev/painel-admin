@@ -213,10 +213,9 @@ async function deleteService() {
     let currentUser = null;
 
 
+      
         let appointments = [];
-            {id: 1, name: 'Pomada Matte', price: 45.00, priceOld: 55.00, stock: 12, img: '', desc: 'Fixação extra forte para o dia todo.', isPromo: true},
-            {id: 2, name: 'Óleo para Barba', price: 35.00, priceOld: 0, stock: 3, img: '', desc: 'Hidratação profunda e brilho.', isPromo: false}
-        ];
+        let products = []; // ✅ ESSENCIAL (faltando aqui)
         let blocks = JSON.parse(localStorage.getItem('gp_blocks')) || [];
         let selectedDate = new Date().toISOString().split('T')[0];
         let fluxChart = null;
