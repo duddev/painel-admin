@@ -214,7 +214,6 @@ async function deleteService() {
 
 
         let appointments = [];
-        let products = JSON.parse(localStorage.getItem('gp_prods')) || [
             {id: 1, name: 'Pomada Matte', price: 45.00, priceOld: 55.00, stock: 12, img: '', desc: 'Fixação extra forte para o dia todo.', isPromo: true},
             {id: 2, name: 'Óleo para Barba', price: 35.00, priceOld: 0, stock: 3, img: '', desc: 'Hidratação profunda e brilho.', isPromo: false}
         ];
