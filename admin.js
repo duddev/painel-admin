@@ -700,35 +700,160 @@ document.getElementById('edit-user-active').checked = user.active;document.getEl
 }
 
 
-        // [BLOCO PRODUTOS]
+       // [BLOCO PRODUTOS]
 // PRODUTOS
 
+
+// ========================
+// LOAD PRODUCTS (SUPABASE)
+// ========================
+// Carrega produtos do BD
+
+let products = [];
+
+async function loadProducts() {
+  const { data, error } = await sb
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao carregar produtos:', error);
+    return;
+  }
+
+  // 🔥 ajustar nomes para compatibilidade
+  products = (data || []).map(p => ({
+    ...p,
+    priceOld: p.price_old,
+    isPromo: p.is_promo
+  }));
+
+  
+  renderProducts();
+
+}
+
+
 // FUNÇÃO: renderProducts()
-// Renderiza os cards de produtos usando a lista `products` salva no localStorage.
-        function renderProducts() {
-            const list = document.getElementById('product-list');
-            list.innerHTML = products.map(p => `
-                <div class="product-card">
-                    ${p.isPromo ? '<div class="promo-tag">Promoção</div>' : ''}
-                    <div class="product-image-container">
-                        ${p.img ? `<img src="${p.img}">` : '<div class="no-image"><i class="fas fa-box"></i></div>'}
-                    </div>
-                    <div class="product-info">
-                        <span class="product-name">${p.name}</span>
-                        <p class="product-desc">${p.desc || 'Sem descrição.'}</p>
-                        <div class="product-pricing">
-                            <span class="price-current">R$ ${p.price.toFixed(2)}</span>
-                            ${p.priceOld > 0 ? `<span class="price-old">R$ ${p.priceOld.toFixed(2)}</span>` : ''}
-                        </div>
-                        <div class="stock-info">
-                            <span>Estoque</span>
-                            <span class="stock-status ${p.stock < 5 ? 'stock-low' : 'stock-ok'}">${p.stock} unid.</span>
-                        </div>
-                        <button class="btn-primary" style="padding: 8px; font-size: 12px;" onclick="editProduct(${p.id})">Editar Produto</button>
-                    </div>
-                </div>
-            `).join('');
+
+// Renderiza os produtos carregados do Supabase
+
+function renderProducts() {
+  const list = document.getElementById('product-list');
+  if (!list) return;
+
+  if (!products.length) {
+    list.innerHTML = `
+      <p style="text-align:center;">
+        Nenhum produto cadastrado
+      </p>
+    `;
+    return;
+  }
+
+  list.innerHTML = products.map(p => `
+    <div class="product-card">
+
+      ${p.isPromo ? '<div class="promo-tag">Promoção</div>' : ''}
+
+      <div class="product-image-container">
+        ${
+          p.img 
+          ? `<img src="${p.img}" />` 
+          : `<div class="no-image">📦</div>`
         }
+      </div>
+
+      <div class="product-info">
+        <span class="product-name">${p.name}</span>
+
+        <p class="product-desc">
+          ${p.desc || 'Sem descrição'}
+        </p>
+
+        <div class="product-pricing">
+          <span class="price-current">
+            R$ ${(+p.price || 0).toFixed(2)}
+          </span>
+
+          ${p.priceOld > 0 
+            ? `<span class="price-old">
+                R$ ${(+p.priceOld).toFixed(2)}
+              </span>`
+            : ''
+          }
+        </div>
+
+        <div class="stock-info">
+          <span>Estoque</span>
+          <span class="stock-status ${(+p.stock || 0) < 5 ? 'stock-low' : 'stock-ok'}">
+            ${p.stock} unid.
+          </span>
+        </div>
+        
+        ${(+p.stock || 0) <= 0 
+          ? `<span style="color:red;font-size:12px;">Esgotado</span>`
+          : ''
+        }
+
+
+        <button class="btn-primary"
+          onclick="editProduct(${p.id})">
+          Editar Produto
+        </button>
+
+      </div>
+
+    </div>
+  `).join('');
+}
+
+// FUNÇÃO: saveProduct()
+// Salva produto novo ou editado no localStorage.
+
+       async function saveProduct() {
+        const id = document.getElementById('edit-prod-id').value;
+
+        const data = {
+          name: document.getElementById('prod-name').value,
+          price: parseFloat(document.getElementById('prod-price').value),
+          price_old: parseFloat(document.getElementById('prod-price-old').value) || 0,
+          stock: parseInt(document.getElementById('prod-stock').value) || 0,
+          img: document.getElementById('prod-img').value,
+          desc: document.getElementById('prod-desc').value,
+          is_promo: document.getElementById('prod-is-promo').value === 'true',
+          active: true
+        };
+
+        if (!data.name || isNaN(data.price)) {
+          return alert('Preencha Nome e Preço!');
+        }
+
+        let error;
+
+        if (id) {
+          // 🔥 UPDATE
+          ({ error } = await sb
+            .from('products')
+            .update(data)
+            .eq('id', id));
+        } else {
+          // 🔥 INSERT
+          ({ error } = await sb
+            .from('products')
+            .insert([data]));
+        }
+
+        if (error) {
+          console.error(error);
+          alert('Erro ao salvar produto');
+          return;
+        }
+
+        await loadProducts();
+        closeModal('modal-produto');
+      }
 
 // FUNÇÃO: prepareNewProduct()
 // Limpa o modal para cadastrar um novo produto.
@@ -751,11 +876,14 @@ document.getElementById('edit-user-active').checked = user.active;document.getEl
 // Abre o modal de produto preenchido para edição.
 
         function editProduct(id) {
-            const p = products.find(x => x.id === id);
+            
+          const p = products.find(x => x.id === id);
+          if (!p) return;
+
             document.getElementById('edit-prod-id').value = p.id;
             document.getElementById('prod-name').value = p.name;
             document.getElementById('prod-price').value = p.price;
-            document.getElementById('prod-price-old').value = p.priceOld || '';
+            document.getElementById('prod-price-old').value = p.priceOld ?? '';
             document.getElementById('prod-stock').value = p.stock;
             document.getElementById('prod-img').value = p.img || '';
             document.getElementById('prod-desc').value = p.desc || '';
@@ -765,52 +893,30 @@ document.getElementById('edit-user-active').checked = user.active;document.getEl
             openModal('modal-produto');
         }
 
-// FUNÇÃO: saveProduct()
-// Salva produto novo ou editado no localStorage.
 
-        function saveProduct() {
-            const id = document.getElementById('edit-prod-id').value;
-            const data = {
-                name: document.getElementById('prod-name').value,
-                price: parseFloat(document.getElementById('prod-price').value),
-                priceOld: parseFloat(document.getElementById('prod-price-old').value) || 0,
-                stock: parseInt(document.getElementById('prod-stock').value),
-                img: document.getElementById('prod-img').value,
-                desc: document.getElementById('prod-desc').value,
-                isPromo: document.getElementById('prod-is-promo').value === 'true'
-            };
-            if(!data.name || isNaN(data.price)) return alert('Preencha Nome e Preço!');
-            if(id) {
-                const idx = products.findIndex(p => p.id == id);
-                products[idx] = { ...products[idx], ...data };
-            } else {
-                products.push({ id: Date.now(), ...data });
-            }
-
-            
-            // ✅ AQUI O FIX
-            localStorage.setItem('gp_prods', JSON.stringify(products));
-
-            renderAll();
-            closeModal('modal-produto');
-
-        }
-
+      
 // FUNÇÃO: deleteProduct()
 // Remove um produto do localStorage.
 
-        function deleteProduct() {
-            const id = document.getElementById('edit-prod-id').value;
-            if(confirm('Apagar permanentemente?')) {
-                products = products.filter(p => p.id != id);
+       async function deleteProduct() {
+        const id = document.getElementById('edit-prod-id').value;
 
-                
-                // ✅ salvar depois de remover
-                localStorage.setItem('gp_prods', JSON.stringify(products));
+        if (!confirm('Apagar permanentemente?')) return;
 
-                renderAll(); closeModal('modal-produto');
-            }
+        const { error } = await sb
+          .from('products')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error(error);
+          alert('Erro ao deletar');
+          return;
         }
+
+        await loadProducts();
+        closeModal('modal-produto');
+      }
 
         // [BLOCO DASHBOARD]
 // DASHBOARD
