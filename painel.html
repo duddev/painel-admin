@@ -331,6 +331,444 @@ LOGIN - NOVO PADRÃO PROFISSIONAL
         @media (max-width: 768px) {
             .inventory-list { grid-template-columns: 1fr; }
         }
+    
+
+/* =============================================================
+   PATCH FINAL - VISUAL PROFISSIONAL RESPONSIVO
+   - Não altera IDs, onclicks ou funções.
+   - Corrige login sobreposto ao painel.
+   - Ajusta fontes, modais e grids para celular e PC.
+   ============================================================= */
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg-dark);
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, select, textarea, a {
+  touch-action: manipulation;
+}
+
+/* LOGIN: fica sempre acima do painel/sidebar */
+#login-screen {
+  z-index: 9999 !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.login-card {
+  width: min(100%, 380px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  padding: 30px 24px;
+  border-radius: 18px;
+}
+
+.login-logo {
+  width: 62px;
+  height: 62px;
+  font-size: 22px;
+  margin-bottom: 16px;
+  box-shadow: 0 0 0 8px rgba(0, 180, 166, .07);
+}
+
+.login-title {
+  font-size: 21px;
+}
+
+.login-subtitle {
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+.login-footer {
+  margin-top: 18px;
+}
+
+/* Tipografia geral mais equilibrada */
+h1 { font-size: clamp(22px, 4vw, 34px); }
+h2 { font-size: clamp(20px, 3.5vw, 30px); }
+h3 { font-size: clamp(18px, 3vw, 24px); }
+h4 { font-size: clamp(16px, 2.4vw, 20px); }
+
+/* Inputs e botões: tamanho confortável sem ficar gigante */
+.input-group {
+  margin-bottom: 13px;
+}
+
+.input-group label {
+  font-size: 11px;
+  letter-spacing: .2px;
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+  min-height: 44px;
+  font-size: 14px;
+  border-radius: 11px;
+  padding: 11px 12px;
+}
+
+.btn-primary {
+  min-height: 46px;
+  font-size: 14px;
+  padding: 13px 14px;
+  border-radius: 12px;
+}
+
+.btn-action {
+  min-height: 38px;
+  font-size: 12px;
+  border-radius: 10px;
+  justify-content: center;
+}
+
+/* Sidebar sem invadir login */
+.sidebar {
+  z-index: 1500;
+  width: min(86vw, var(--sidebar-width));
+  left: calc(-1 * min(86vw, var(--sidebar-width)));
+  overflow-y: auto;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.overlay {
+  z-index: 1400;
+}
+
+.menu-item {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* Header mais estável */
+header {
+  min-height: 60px;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+header > div:first-child {
+  min-width: 0;
+}
+
+#view-title {
+  font-size: clamp(18px, 4vw, 23px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.container {
+  width: 100%;
+  padding: 18px;
+  padding-bottom: 90px;
+}
+
+/* Cards */
+.card,
+.product-card,
+.stat-box,
+.modal-content {
+  box-shadow: 0 10px 28px rgba(0,0,0,.18);
+}
+
+.card {
+  padding: 17px;
+  border-radius: 15px;
+}
+
+.stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 11px;
+}
+
+.stat-box {
+  min-height: 78px;
+  padding: 13px 10px;
+}
+
+.stat-value {
+  font-size: clamp(20px, 5vw, 28px);
+}
+
+.stat-label {
+  font-size: 9px;
+}
+
+/* Agenda */
+.agenda-item {
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+}
+
+.item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.item-actions button,
+.agenda-item button {
+  min-width: 38px;
+  min-height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.05);
+  color: #fff;
+}
+
+/* Produtos e listagens */
+.inventory-list,
+#services-list,
+#user-list {
+  gap: 13px !important;
+}
+
+.inventory-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.product-card {
+  padding: 14px;
+  border-radius: 17px;
+}
+
+.product-image-container {
+  height: clamp(135px, 28vw, 170px);
+}
+
+.product-name {
+  font-size: 15px;
+}
+
+.product-desc {
+  font-size: 11px;
+}
+
+/* Modais: compactos no desktop, bons no mobile */
+.modal {
+  z-index: 3000;
+  padding: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  width: min(100%, 480px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 22px;
+  border-radius: 20px;
+}
+
+.modal-content > div:first-child,
+.modal-header {
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-content button[onclick^="closeModal"],
+.close-modal {
+  min-width: 38px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tag {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 11px;
+  margin-right: 5px;
+}
+
+.notif-dropdown {
+  max-width: calc(100vw - 24px);
+}
+
+.chart-container {
+  height: 235px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  body {
+    font-size: 13px;
+  }
+
+  #login-screen {
+    padding: 14px;
+  }
+
+  .login-card {
+    padding: 26px 20px;
+  }
+
+  .input-group input,
+  .input-group select,
+  .input-group textarea {
+    font-size: 16px; /* evita zoom iOS apenas no mobile */
+    min-height: 45px;
+  }
+
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 10px 12px;
+  }
+
+  header > button[onclick="doLogout()"] {
+    display: none !important;
+  }
+
+  header > div:first-child {
+    min-width: 0;
+  }
+
+  header > div:last-child {
+    gap: 9px !important;
+  }
+
+  #view-title {
+    max-width: 48vw;
+  }
+
+  header > div:last-child > button[onclick="openModal('modal-agenda')"] {
+    width: 42px;
+    height: 42px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 0 !important;
+  }
+
+  header > div:last-child > button[onclick="openModal('modal-agenda')"] i {
+    font-size: 16px;
+  }
+
+  .container {
+    padding: 14px;
+    padding-bottom: 86px;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  .inventory-list,
+  #services-list,
+  #user-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: none;
+    max-height: 90dvh;
+    border-radius: 20px 20px 0 0;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .modal-content div[style*="grid-template-columns: 1fr 1fr"],
+  .card div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .notif-dropdown {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    width: calc(100vw - 20px);
+  }
+}
+
+/* CELULARES PEQUENOS */
+@media (max-width: 380px) {
+  .login-card {
+    padding: 22px 16px;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+  }
+
+  .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #view-title {
+    max-width: 43vw;
+  }
+
+  .modal-content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* PC: mantém menu lateral aberto, sem afetar login */
+@media (min-width: 1100px) {
+  body:has(#login-screen[style*="display: none"]) .sidebar {
+    left: 0;
+  }
+
+  body:has(#login-screen[style*="display: none"]) .main-content {
+    padding-left: var(--sidebar-width);
+  }
+
+  body:has(#login-screen[style*="display: none"]) .overlay {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
     </style>
 </head>
 <body>
