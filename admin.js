@@ -214,10 +214,7 @@ async function deleteService() {
 
 
         let appointments = [];
-        let products = JSON.parse(localStorage.getItem('gp_prods')) || [
-            {id: 1, name: 'Pomada Matte', price: 45.00, priceOld: 55.00, stock: 12, img: '', desc: 'Fixação extra forte para o dia todo.', isPromo: true},
-            {id: 2, name: 'Óleo para Barba', price: 35.00, priceOld: 0, stock: 3, img: '', desc: 'Hidratação profunda e brilho.', isPromo: false}
-        ];
+        let products = [];
         let blocks = JSON.parse(localStorage.getItem('gp_blocks')) || [];
         let selectedDate = new Date().toISOString().split('T')[0];
         let fluxChart = null;
@@ -700,117 +697,207 @@ document.getElementById('edit-user-active').checked = user.active;document.getEl
 }
 
 
-        // [BLOCO PRODUTOS]
+ // [BLOCO PRODUTOS]
 // PRODUTOS
 
-// FUNÇÃO: renderProducts()
-// Renderiza os cards de produtos usando a lista `products` salva no localStorage.
-        function renderProducts() {
-            const list = document.getElementById('product-list');
-            list.innerHTML = products.map(p => `
-                <div class="product-card">
-                    ${p.isPromo ? '<div class="promo-tag">Promoção</div>' : ''}
-                    <div class="product-image-container">
-                        ${p.img ? `<img src="${p.img}">` : '<div class="no-image"><i class="fas fa-box"></i></div>'}
-                    </div>
-                    <div class="product-info">
-                        <span class="product-name">${p.name}</span>
-                        <p class="product-desc">${p.desc || 'Sem descrição.'}</p>
-                        <div class="product-pricing">
-                            <span class="price-current">R$ ${p.price.toFixed(2)}</span>
-                            ${p.priceOld > 0 ? `<span class="price-old">R$ ${p.priceOld.toFixed(2)}</span>` : ''}
-                        </div>
-                        <div class="stock-info">
-                            <span>Estoque</span>
-                            <span class="stock-status ${p.stock < 5 ? 'stock-low' : 'stock-ok'}">${p.stock} unid.</span>
-                        </div>
-                        <button class="btn-primary" style="padding: 8px; font-size: 12px;" onclick="editProduct(${p.id})">Editar Produto</button>
-                    </div>
-                </div>
-            `).join('');
+
+// ========================
+// LOAD PRODUCTS (SUPABASE)
+// ========================
+async function loadProducts() {
+  const { data, error } = await sb
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erro ao carregar produtos:', error);
+    return;
+  }
+
+  products = (data || []).map(p => ({
+    ...p,
+    priceOld: p.price_old,
+    isPromo: p.is_promo
+  }));
+
+  renderProducts();
+}
+
+// ========================
+// RENDER PRODUCTS
+// ========================
+function renderProducts() {
+  const list = document.getElementById('product-list');
+  if (!list) return;
+
+  if (!products.length) {
+    list.innerHTML = `
+      <p style="text-align:center; padding:20px;">
+        Nenhum produto cadastrado
+      </p>
+    `;
+    return;
+  }
+
+  list.innerHTML = products.map(p => `
+    <div class="product-card">
+
+      ${p.isPromo ? '<div class="promo-tag">Promoção</div>' : ''}
+
+      <div class="product-image-container">
+        ${
+          p.img 
+          ? `<img src="${p.img}" onerror="this.style.display='none'" />`
+          : '<div class="no-image"><i class="fas fa-box"></i></div>'
+        }
+      </div>
+
+      <div class="product-info">
+
+        <span class="product-name">${p.name}</span>
+
+        <p class="product-desc">
+          ${p.desc || 'Sem descrição.'}
+        </p>
+
+        <div class="product-pricing">
+          <span class="price-current">
+            R$ ${(+p.price || 0).toFixed(2)}
+          </span>
+
+          ${p.priceOld > 0 
+            ? `<span class="price-old">
+                R$ ${(+p.priceOld).toFixed(2)}
+              </span>`
+            : ''
+          }
+        </div>
+
+        <div class="stock-info">
+          <span>Estoque</span>
+          <span class="stock-status ${(+p.stock || 0) < 5 ? 'stock-low' : 'stock-ok'}">
+            ${p.stock || 0} unid.
+          </span>
+        </div>
+
+        ${(+p.stock || 0) <= 0 
+          ? `<span style="color:#ff4d4d; font-size:12px;">Esgotado</span>`
+          : ''
         }
 
-// FUNÇÃO: prepareNewProduct()
-// Limpa o modal para cadastrar um novo produto.
+        <button class="btn-primary"
+          style="padding: 8px; font-size: 12px;"
+          onclick="editProduct(${p.id})">
+          Editar Produto
+        </button>
 
-        function prepareNewProduct() {
-            document.getElementById('edit-prod-id').value = '';
-            document.getElementById('prod-name').value = '';
-            document.getElementById('prod-price').value = '';
-            document.getElementById('prod-price-old').value = '';
-            document.getElementById('prod-stock').value = '';
-            document.getElementById('prod-img').value = '';
-            document.getElementById('prod-desc').value = '';
-            document.getElementById('prod-is-promo').value = 'false';
-            document.getElementById('prod-modal-title').innerText = 'Novo Produto';
-            document.getElementById('btn-del-prod').style.display = 'none';
-            openModal('modal-produto');
-        }
+      </div>
 
-// FUNÇÃO: editProduct(id)
-// Abre o modal de produto preenchido para edição.
+    </div>
+  `).join('');
+}
 
-        function editProduct(id) {
-            const p = products.find(x => x.id === id);
-            document.getElementById('edit-prod-id').value = p.id;
-            document.getElementById('prod-name').value = p.name;
-            document.getElementById('prod-price').value = p.price;
-            document.getElementById('prod-price-old').value = p.priceOld || '';
-            document.getElementById('prod-stock').value = p.stock;
-            document.getElementById('prod-img').value = p.img || '';
-            document.getElementById('prod-desc').value = p.desc || '';
-            document.getElementById('prod-is-promo').value = p.isPromo.toString();
-            document.getElementById('prod-modal-title').innerText = 'Editar Produto';
-            document.getElementById('btn-del-prod').style.display = 'block';
-            openModal('modal-produto');
-        }
+// ========================
+// SAVE PRODUCT (SUPABASE)
+// ========================
+async function saveProduct() {
+  const id = document.getElementById('edit-prod-id').value;
 
-// FUNÇÃO: saveProduct()
-// Salva produto novo ou editado no localStorage.
+  const data = {
+    name: document.getElementById('prod-name').value,
+    price: parseFloat(document.getElementById('prod-price').value),
+    price_old: parseFloat(document.getElementById('prod-price-old').value) || 0,
+    stock: parseInt(document.getElementById('prod-stock').value) || 0,
+    img: document.getElementById('prod-img').value,
+    desc: document.getElementById('prod-desc').value,
+    is_promo: document.getElementById('prod-is-promo').value === 'true',
+    active: true
+  };
 
-        function saveProduct() {
-            const id = document.getElementById('edit-prod-id').value;
-            const data = {
-                name: document.getElementById('prod-name').value,
-                price: parseFloat(document.getElementById('prod-price').value),
-                priceOld: parseFloat(document.getElementById('prod-price-old').value) || 0,
-                stock: parseInt(document.getElementById('prod-stock').value),
-                img: document.getElementById('prod-img').value,
-                desc: document.getElementById('prod-desc').value,
-                isPromo: document.getElementById('prod-is-promo').value === 'true'
-            };
-            if(!data.name || isNaN(data.price)) return alert('Preencha Nome e Preço!');
-            if(id) {
-                const idx = products.findIndex(p => p.id == id);
-                products[idx] = { ...products[idx], ...data };
-            } else {
-                products.push({ id: Date.now(), ...data });
-            }
+  if (!data.name || isNaN(data.price)) {
+    return alert('Preencha Nome e Preço!');
+  }
 
-            
-            // ✅ AQUI O FIX
-            localStorage.setItem('gp_prods', JSON.stringify(products));
+  let error;
 
-            renderAll();
-            closeModal('modal-produto');
+  if (id) {
+    ({ error } = await sb.from('products').update(data).eq('id', id));
+  } else {
+    ({ error } = await sb.from('products').insert([data]));
+  }
 
-        }
+  if (error) {
+    console.error(error);
+    alert('Erro ao salvar produto');
+    return;
+  }
 
-// FUNÇÃO: deleteProduct()
-// Remove um produto do localStorage.
+  await loadProducts();
+  closeModal('modal-produto');
+}
 
-        function deleteProduct() {
-            const id = document.getElementById('edit-prod-id').value;
-            if(confirm('Apagar permanentemente?')) {
-                products = products.filter(p => p.id != id);
+// ========================
+// NEW PRODUCT
+// ========================
+function prepareNewProduct() {
+  document.getElementById('edit-prod-id').value = '';
+  document.getElementById('prod-name').value = '';
+  document.getElementById('prod-price').value = '';
+  document.getElementById('prod-price-old').value = '';
+  document.getElementById('prod-stock').value = '';
+  document.getElementById('prod-img').value = '';
+  document.getElementById('prod-desc').value = '';
+  document.getElementById('prod-is-promo').value = 'false';
+  document.getElementById('prod-modal-title').innerText = 'Novo Produto';
+  document.getElementById('btn-del-prod').style.display = 'none';
 
-                
-                // ✅ salvar depois de remover
-                localStorage.setItem('gp_prods', JSON.stringify(products));
+  openModal('modal-produto');
+}
 
-                renderAll(); closeModal('modal-produto');
-            }
-        }
+// ========================
+// EDIT PRODUCT
+// ========================
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('edit-prod-id').value = p.id;
+  document.getElementById('prod-name').value = p.name;
+  document.getElementById('prod-price').value = p.price;
+  document.getElementById('prod-price-old').value = p.priceOld ?? '';
+  document.getElementById('prod-stock').value = p.stock;
+  document.getElementById('prod-img').value = p.img || '';
+  document.getElementById('prod-desc').value = p.desc || '';
+  document.getElementById('prod-is-promo').value = p.isPromo.toString();
+  document.getElementById('prod-modal-title').innerText = 'Editar Produto';
+  document.getElementById('btn-del-prod').style.display = 'block';
+
+  openModal('modal-produto');
+}
+
+// ========================
+// DELETE PRODUCT
+// ========================
+async function deleteProduct() {
+  const id = document.getElementById('edit-prod-id').value;
+
+  if (!confirm('Apagar permanentemente?')) return;
+
+  const { error } = await sb
+    .from('products')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    alert('Erro ao deletar');
+    return;
+  }
+
+  await loadProducts();
+  closeModal('modal-produto');
+}
 
         // [BLOCO DASHBOARD]
 // DASHBOARD
